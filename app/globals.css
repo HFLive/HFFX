@@ -1,3 +1,6 @@
+/* 从 ZSFT 导入字体 */
+@import url("https://fontsapi.zeoseven.com/2/main/result.css");
+@import url("https://fontsapi.zeoseven.com/292/main/result.css");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -15,6 +18,19 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: "LXGW WenKai";
+    font-weight: normal;
+  }
+
+  /* 粗体字使用 LXGW ZhenKai GB */
+  strong,
+  b,
+  .font-black,
+  .font-bold,
+  .font-medium,
+  .font-semibold {
+    font-family: "LXGW ZhenKai GB";
+    font-weight: normal !important;
   }
 }
 
