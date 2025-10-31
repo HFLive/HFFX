@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import Navbar from "@/components/Navbar";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -31,6 +33,9 @@ export default function RootLayout({
           <Navbar />
           {children}
         </SmoothScrollProvider>
+
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
