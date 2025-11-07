@@ -7,6 +7,24 @@ echo "开始部署..."
 echo "安装依赖..."
 npm install
 
+# 重置数据库（创建全新数据库）
+echo "重置数据库..."
+rm -f prisma/dev.db prisma/dev.db-journal
+echo "已删除旧数据库"
+
+# 生成 Prisma Client
+echo "生成 Prisma Client..."
+npx prisma generate
+
+# 创建新数据库
+echo "创建新数据库..."
+npx prisma migrate deploy
+if [ $? -ne 0 ]; then
+    echo "数据库迁移失败，尝试使用 db push..."
+    npx prisma db push --accept-data-loss
+fi
+echo "数据库创建成功！"
+
 # 构建项目
 echo "构建项目..."
 npm run build
