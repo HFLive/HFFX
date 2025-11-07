@@ -1,0 +1,18 @@
+[
+  {
+    "slug": "messages",
+    "title": "寄语征集",
+    "description": "您的寄语将被放在网站首页",
+    "embedHtml": "<iframe id='idy_frame' height=\"100%\" width=\"100%\" src=\"https://wj.qq.com/s2/24613560/5159/\" frameborder=\"0\" style='min-height:650px' allowfullscreen sandbox=\"allow-same-origin allow-scripts allow-modals allow-downloads allow-forms allow-popups\"></iframe>",
+    "createdAt": "2025-11-07T04:27:19.159Z",
+    "updatedAt": "2025-11-07T04:27:19.159Z"
+  },
+  {
+    "slug": "products",
+    "title": "周边产品投票",
+    "description": "欢迎您对我们的产品提出看法",
+    "embedHtml": "<iframe id='idy_frame' height=\"100%\" width=\"100%\" src=\"https://wj.qq.com/s2/24619010/b492/\" frameborder=\"0\" style='min-height:650px' allowfullscreen sandbox=\"allow-same-origin allow-scripts allow-modals allow-downloads allow-forms allow-popups\"></iframe>",
+    "createdAt": "2025-11-07T04:27:19.159Z",
+    "updatedAt": "2025-11-07T04:27:19.159Z"
+  }
+]
