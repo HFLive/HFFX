@@ -13,7 +13,12 @@ export default function AdminLoginPage() {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    
+    console.log("[登录] 开始登录流程...");
+    
     try {
+      console.log("[登录] 发送登录请求到 /api/admin/login");
+      
       const response = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -21,18 +26,32 @@ export default function AdminLoginPage() {
         credentials: "include", // 确保包含 cookies
       });
       
-      const data = await response.json().catch(() => ({}));
+      console.log("[登录] 收到响应，状态码:", response.status);
+      
+      const data = await response.json().catch((err) => {
+        console.error("[登录] 解析响应 JSON 失败:", err);
+        return {};
+      });
+      
+      console.log("[登录] 响应数据:", data);
       
       if (!response.ok) {
-        throw new Error(data.message ?? "登录失败");
+        const errorMsg = data.message ?? "登录失败";
+        console.error("[登录] 登录失败:", errorMsg);
+        throw new Error(errorMsg);
       }
       
+      console.log("[登录] 登录成功，准备跳转...");
+      
       // 登录成功，等待一小段时间确保 cookie 已设置
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      console.log("[登录] 执行跳转到 /admin");
       
       // 使用 window.location 进行完整的页面重定向，确保 cookie 生效
       window.location.href = "/admin";
     } catch (err: any) {
+      console.error("[登录] 捕获错误:", err);
       setError(err.message ?? "登录失败，请稍后再试");
       setLoading(false);
     }
@@ -59,7 +78,11 @@ export default function AdminLoginPage() {
           </label>
           {error && (
             <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-              {error}
+              <p className="font-semibold">登录失败</p>
+              <p className="mt-1">{error}</p>
+              <p className="mt-2 text-xs text-red-500">
+                提示：请检查浏览器控制台查看详细错误信息
+              </p>
             </div>
           )}
           <button
