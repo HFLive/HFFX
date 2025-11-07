@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { unstable_noStore as noStore } from 'next/cache';
 
 export type CountdownSettings = {
   target: string;
@@ -7,6 +8,7 @@ export type CountdownSettings = {
 const FALLBACK_TARGET = "2025-12-30T18:00:00";
 
 export async function readCountdown(): Promise<CountdownSettings> {
+  noStore();
   const setting = await prisma.siteSetting.findUnique({
     where: { key: "countdown_target" },
   });
@@ -19,6 +21,7 @@ export async function readCountdown(): Promise<CountdownSettings> {
 }
 
 export async function writeCountdown(settings: CountdownSettings): Promise<void> {
+  noStore();
   await prisma.siteSetting.upsert({
     where: { key: "countdown_target" },
     update: { value: settings.target },

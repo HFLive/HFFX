@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { unstable_noStore as noStore } from 'next/cache';
 
 export type TimelineEvent = {
   id: string;
@@ -15,6 +16,7 @@ export type TimelineData = {
 };
 
 export async function readTimeline(): Promise<TimelineData> {
+  noStore();
   const events = await prisma.timelineEvent.findMany({
     orderBy: { order: "asc" },
   });
@@ -37,6 +39,7 @@ export async function readTimeline(): Promise<TimelineData> {
 }
 
 export async function writeTimeline(data: TimelineData): Promise<void> {
+  noStore();
   // 使用事务更新所有数据
   await prisma.$transaction(async (tx) => {
     // 更新note

@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { unstable_noStore as noStore } from 'next/cache';
 
 export type SurveyRecord = {
   id: string;
@@ -12,6 +13,7 @@ export type SurveyRecord = {
 };
 
 export async function readSurveys(): Promise<SurveyRecord[]> {
+  noStore();
   const surveys = await prisma.survey.findMany({
     orderBy: { createdAt: "asc" },
   });
@@ -29,6 +31,7 @@ export async function readSurveys(): Promise<SurveyRecord[]> {
 }
 
 export async function readSurveyBySlug(slug: string): Promise<SurveyRecord | null> {
+  noStore();
   const survey = await prisma.survey.findUnique({
     where: { slug },
   });

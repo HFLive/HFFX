@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { unstable_noStore as noStore } from 'next/cache';
 
 export type DanmakuRecord = {
   id: string;
@@ -9,6 +10,7 @@ export type DanmakuRecord = {
 };
 
 export async function readDanmaku(): Promise<DanmakuRecord[]> {
+  noStore();
   const danmakuList = await prisma.danmaku.findMany({
     orderBy: { createdAt: "asc" },
   });
