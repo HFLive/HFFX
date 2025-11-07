@@ -3,11 +3,18 @@
 ## 问题描述
 后台修改数据后，数据库更新成功，但前端页面刷新后显示旧数据，需要重启服务才能看到更新。
 
+**关键现象：**
+- 全新设备第一次访问显示新数据
+- 刷新页面后显示旧数据
+- 服务器端和 API 都返回正确的新数据
+- **问题根源：浏览器缓存了 HTML 页面**
+
 ## 根本原因
-Next.js 14 的多层缓存机制：
-1. **页面缓存** - 静态页面在构建时预渲染
-2. **API 路由缓存** - GET 请求默认缓存
-3. **数据缓存** - fetch 和数据库查询结果缓存
+多层缓存机制：
+1. **Next.js 页面缓存** - 静态页面在构建时预渲染
+2. **Next.js API 路由缓存** - GET 请求默认缓存
+3. **Next.js 数据缓存** - fetch 和数据库查询结果缓存
+4. **浏览器缓存** - 浏览器缓存 HTML 页面（最关键）
 
 ## 解决方案
 
@@ -82,6 +89,83 @@ export async function GET() {
 }
 ```
 
+### 4. 禁用浏览器缓存（HTTP 响应头）⭐ 最关键
+在 `next.config.js` 中添加 `Cache-Control` 响应头，明确告诉浏览器不要缓存动态页面：
+
+**修改的文件：**
+- ✅ `next.config.js`
+
+**完整配置：**
+```javascript
+async headers() {
+  return [
+    // ... 其他安全头 ...
+    // 禁用动态页面的浏览器缓存
+    {
+      source: '/timeline',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      ],
+    },
+    {
+      source: '/survey/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      ],
+    },
+    {
+      source: '/products',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      ],
+    },
+    {
+      source: '/team',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      ],
+    },
+    {
+      source: '/admin/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      ],
+    },
+    {
+      source: '/api/:path*',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        },
+      ],
+    },
+  ];
+}
+```
+
+**Cache-Control 说明：**
+- `no-store` - 完全禁止缓存
+- `no-cache` - 每次使用前必须验证
+- `must-revalidate` - 缓存过期后必须重新验证
+- `proxy-revalidate` - 代理服务器必须重新验证
+- `max-age=0` - 立即过期
+
 ## 部署步骤
 
 在服务器上执行以下命令：
@@ -120,11 +204,30 @@ pm2 logs hsfzfx --lines 50
 
 ## 技术细节
 
-### 为什么需要三层禁用？
+### 为什么需要四层禁用？
 
-1. **noStore()** - 确保数据库查询不被缓存
+1. **noStore()** - 确保数据库查询不被 Next.js 缓存
 2. **dynamic = 'force-dynamic'** - 确保页面/API 路由在每次请求时重新渲染
 3. **revalidate = 0** - 禁用增量静态再生（ISR）缓存
+4. **Cache-Control 响应头** ⭐ - 确保浏览器不缓存 HTML 页面（最关键！）
+
+### 缓存层级图
+
+```
+浏览器请求
+    ↓
+[1] 浏览器缓存 ← Cache-Control: no-store (next.config.js)
+    ↓
+服务器 Next.js
+    ↓
+[2] 页面缓存 ← dynamic = 'force-dynamic'
+    ↓
+[3] 路由缓存 ← revalidate = 0
+    ↓
+[4] 数据缓存 ← noStore()
+    ↓
+数据库
+```
 
 ### Next.js 14 缓存机制
 
@@ -132,8 +235,15 @@ Next.js 14 默认缓存策略：
 - 页面在构建时预渲染（Static）
 - GET API 路由默认缓存 
 - 数据库查询结果缓存
+- **浏览器按照标准 HTTP 缓存机制缓存响应**
 
-这对于内容不常变化的网站很好，但对于需要实时更新的后台管理系统，需要显式禁用缓存。
+这对于内容不常变化的网站很好，但对于需要实时更新的后台管理系统，需要显式禁用所有层级的缓存。
+
+### 实际测试结果
+
+- ✅ 全新设备第一次访问 → 显示正确数据
+- ❌ 刷新页面（没有 Cache-Control） → 浏览器使用缓存，显示旧数据
+- ✅ 添加 Cache-Control 后刷新 → 浏览器不使用缓存，显示新数据
 
 ## 注意事项
 
