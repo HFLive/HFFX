@@ -23,45 +23,63 @@ const TRACK_COUNT = 6;
 export function DanmakuProvider({ children }: { children: React.ReactNode }) {
   const [danmaku, setDanmaku] = useState<DanmakuRecord[]>([]);
   const [activeDanmaku, setActiveDanmaku] = useState<ActiveDanmakuItem[]>([]);
+  const [mounted, setMounted] = useState(false);
   const indexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    let mounted = true;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
+    let isActive = true;
     const load = async () => {
       try {
         const response = await fetch("/api/danmaku", { cache: "no-store" });
         if (!response.ok) return;
         const data = (await response.json()) as DanmakuRecord[];
-        if (mounted) setDanmaku(data);
+        if (isActive) setDanmaku(data);
       } catch (error) {
         // ignore
       }
     };
     load();
     return () => {
-      mounted = false;
+      isActive = false;
     };
-  }, []);
+  }, [mounted]);
 
   const pool = useMemo(() => danmaku.filter((item) => item.text?.trim()), [danmaku]);
 
   useEffect(() => {
-    setActiveDanmaku([]);
-    indexRef.current = 0;
+    if (!mounted) return;
+    
+    // 清理之前的定时器
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
 
-    if (pool.length === 0) return;
+    if (pool.length === 0) {
+      // 如果没有弹幕数据，清空现有弹幕
+      setActiveDanmaku([]);
+      indexRef.current = 0;
+      return;
+    }
+
+    // 只在首次加载或pool变化时重置
+    if (activeDanmaku.length === 0) {
+      indexRef.current = 0;
+    }
 
     const spawnDanmaku = () => {
       if (pool.length === 0) return;
       const danmakuItem = pool[indexRef.current % pool.length];
       indexRef.current += 1;
       const track = Math.floor(Math.random() * TRACK_COUNT);
-      const duration = 28 + Math.random() * 9;
+      const duration = 25 + Math.random() * 12; // 25-37秒的随机时长
       const top = 8 + (track * 70) / TRACK_COUNT + Math.random() * 4;
       const key = `${danmakuItem.id}-${Date.now()}-${Math.random()}`;
       setActiveDanmaku((prev) => [
@@ -73,19 +91,37 @@ export function DanmakuProvider({ children }: { children: React.ReactNode }) {
       }, duration * 1000 + 100);
     };
 
-    for (let i = 0; i < Math.min(pool.length, TRACK_COUNT); i += 1) {
-      spawnDanmaku();
-    }
+    // 延迟一点启动，避免首次渲染时的闪烁
+    const startupDelay = activeDanmaku.length === 0 ? 300 : 0;
+    
+    const timers: NodeJS.Timeout[] = [];
+    
+    const startupTimer = setTimeout(() => {
+      // 首次加载时，让弹幕错开出现，而不是一起出现
+      const initialCount = Math.min(pool.length, 8);
+      for (let i = 0; i < initialCount; i += 1) {
+        const timer = setTimeout(() => {
+          spawnDanmaku();
+        }, i * 800); // 每个弹幕间隔800ms出现
+        timers.push(timer);
+      }
 
-    timerRef.current = setInterval(spawnDanmaku, 3200);
+      // 持续生成新弹幕，间隔更短
+      const startContinuous = setTimeout(() => {
+        timerRef.current = setInterval(spawnDanmaku, 2500); // 每2.5秒生成一个新弹幕
+      }, initialCount * 800 + 500);
+      timers.push(startContinuous);
+    }, startupDelay);
 
     return () => {
+      clearTimeout(startupTimer);
+      timers.forEach(timer => clearTimeout(timer));
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
       timerRef.current = null;
     };
-  }, [pool]);
+  }, [pool, mounted]);
 
   const value = useMemo(() => ({ danmaku, activeDanmaku }), [danmaku, activeDanmaku]);
 

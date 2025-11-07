@@ -174,7 +174,7 @@ function ProductImageZoom({ src, alt }: ProductImageZoomProps) {
           fill
           priority={false}
           className="pointer-events-none select-none object-contain"
-          sizes="(min-width: 1024px) 240px, 100vw"
+          sizes="(min-width: 1024px) 240px, (min-width: 768px) 240px, 100vw"
           onLoad={(event: SyntheticEvent<HTMLImageElement>) => {
             const img = event.currentTarget;
             if (img.naturalWidth && img.naturalHeight) {
@@ -397,15 +397,15 @@ export default function ShopClient({ products }: Props) {
   };
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-16 max-w-full">
       <section className="space-y-6 border-b border-slate-200 pb-12">
         <div className="flex flex-col gap-4 md:gap-6">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-900">纪念品商城</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-slate-900">纪念品商城</h1>
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <button
               type="button"
               onClick={() => setLookupOpen(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-white"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-white text-sm"
             >
               查询订单状态
             </button>
@@ -413,20 +413,22 @@ export default function ShopClient({ products }: Props) {
         </div>
       </section>
 
-      <div className="grid gap-16 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <section className="space-y-10">
+      <div className="grid gap-8 lg:gap-16 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <section className="space-y-10 min-w-0">
           {products.map((product, productIndex) => (
             <div key={product.id} className="space-y-5 border-b border-slate-200 pb-8">
-              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px] md:items-start">
-                <div className="space-y-3">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,240px)] md:items-start">
+                <div className="space-y-3 min-w-0">
                   <p className="text-sm uppercase tracking-[0.2em] text-slate-400">系列 {productIndex + 1}</p>
-                  <h2 className="text-3xl font-semibold text-slate-900">{product.name}</h2>
+                  <h2 className="text-2xl md:text-3xl font-semibold text-slate-900 break-words">{product.name}</h2>
                   {product.description && (
-                    <p className="max-w-2xl text-base text-slate-600">{product.description}</p>
+                    <p className="text-base text-slate-600 break-words">{product.description}</p>
                   )}
                 </div>
                 {product.coverImage ? (
-                  <ProductImageZoom src={product.coverImage} alt={product.name} />
+                  <div className="min-w-0 max-w-full">
+                    <ProductImageZoom src={product.coverImage} alt={product.name} />
+                  </div>
                 ) : null}
               </div>
 
@@ -440,15 +442,15 @@ export default function ShopClient({ products }: Props) {
                   return (
                     <div
                       key={variant.id}
-                      className="grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_200px] md:items-center"
+                      className="grid gap-3 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,200px)] md:items-center"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                          <p className="text-lg font-medium text-slate-900">{variant.name}</p>
+                      <div className="space-y-2 min-w-0">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <p className="text-base md:text-lg font-medium text-slate-900 break-words">{variant.name}</p>
                           {variant.price ? (
-                            <span className="text-sm text-slate-500">¥{variant.price}</span>
+                            <span className="text-sm text-slate-500 whitespace-nowrap">¥{variant.price}</span>
                           ) : (
-                            <span className="text-sm text-slate-400">价格待定</span>
+                            <span className="text-sm text-slate-400 whitespace-nowrap">价格待定</span>
                           )}
                         </div>
                         <p
@@ -466,12 +468,12 @@ export default function ShopClient({ products }: Props) {
                           {inventory === null ? "库存充足" : inventory > 0 ? `剩余 ${inventory} 件` : "已售罄"}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3 justify-start md:justify-end">
+                      <div className="flex items-center gap-2 sm:gap-3 justify-start md:justify-end flex-shrink-0">
                         <button
                           type="button"
                           onClick={() => handleQuantityChange(variant.id, inventory, quantity - 1)}
                           disabled={quantity <= 0}
-                          className="h-10 w-10 rounded-full border border-slate-300 text-slate-700 hover:border-slate-500 disabled:opacity-40"
+                          className="h-9 w-9 sm:h-10 sm:w-10 rounded-full border border-slate-300 text-slate-700 hover:border-slate-500 disabled:opacity-40 flex-shrink-0"
                           aria-label="减少数量"
                         >
                           −
@@ -484,14 +486,14 @@ export default function ShopClient({ products }: Props) {
                           onChange={(event) =>
                             handleQuantityChange(variant.id, inventory, Number(event.target.value) || 0)
                           }
-                          className="w-16 rounded-full border border-slate-900/10 bg-white py-2 text-center text-base text-slate-900 focus:border-slate-900 focus:ring-0"
+                          className="w-14 sm:w-16 rounded-full border border-slate-900/10 bg-white py-2 text-center text-sm sm:text-base text-slate-900 focus:border-slate-900 focus:ring-0 flex-shrink-0"
                           disabled={soldOut}
                         />
                         <button
                           type="button"
                           onClick={() => handleQuantityChange(variant.id, inventory, quantity + 1)}
                           disabled={soldOut || quantity >= max}
-                          className="h-10 w-10 rounded-full bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+                          className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 flex-shrink-0"
                           aria-label="增加数量"
                         >
                           ＋
@@ -505,7 +507,7 @@ export default function ShopClient({ products }: Props) {
           ))}
         </section>
 
-        <aside className="space-y-10 lg:sticky lg:top-24">
+        <aside className="space-y-10 lg:sticky lg:top-24 min-w-0">
           <section className="space-y-6">
             <div className="space-y-2">
               <p className="text-sm uppercase tracking-[0.3em] text-slate-400">结算</p>
@@ -562,11 +564,11 @@ export default function ShopClient({ products }: Props) {
               </label>
               <label className="flex flex-col gap-2">
                 <span className="text-sm text-slate-600">手机号</span>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full">
                   <select
                     value={form.phoneCountry}
                     onChange={(event) => handleFieldChange("phoneCountry", event.target.value)}
-                    className="w-44 rounded-none border-b border-slate-300 bg-transparent py-2 text-sm text-slate-700 focus:border-slate-900 focus:outline-none"
+                    className="w-32 sm:w-44 rounded-none border-b border-slate-300 bg-transparent py-2 text-sm text-slate-700 focus:border-slate-900 focus:outline-none flex-shrink-0"
                   >
                     <option value="+86">+86 中国大陆</option>
                     <option value="+852">+852 香港</option>
@@ -593,7 +595,7 @@ export default function ShopClient({ products }: Props) {
                     type="tel"
                     value={form.phone}
                     onChange={(event) => handleFieldChange("phone", event.target.value)}
-                    className="flex-1 rounded-none border-b border-slate-300 bg-transparent py-2 text-base text-slate-900 focus:border-slate-900 focus:outline-none"
+                    className="flex-1 min-w-0 rounded-none border-b border-slate-300 bg-transparent py-2 text-base text-slate-900 focus:border-slate-900 focus:outline-none"
                     placeholder=""
                     required
                   />
@@ -625,7 +627,7 @@ export default function ShopClient({ products }: Props) {
               </div>
 
               {form.deliveryMethod === "delivery" && (
-                <div className="space-y-4 border-slate-300/60 pl-4">
+                <div className="space-y-4 pt-4">
                   <label className="flex flex-col gap-2">
                     <span className="text-sm text-slate-600">收件人姓名</span>
                     <input
@@ -702,8 +704,8 @@ export default function ShopClient({ products }: Props) {
 
       {mounted && success && modalOpen &&
         createPortal(
-          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4">
-            <div className="relative w-full max-w-xl rounded-3xl bg-white px-6 py-8 shadow-2xl">
+          <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4 overflow-y-auto">
+            <div className="relative w-full max-w-xl rounded-3xl bg-white px-4 sm:px-6 py-8 shadow-2xl my-4">
               <button
                 type="button"
                 className="absolute right-5 top-5 text-slate-400 hover:text-slate-700"
@@ -723,12 +725,12 @@ export default function ShopClient({ products }: Props) {
                     </p>
                   </header>
                   <div className="flex flex-col items-center gap-4">
-                    <div className="relative h-80 w-80">
+                    <div className="relative h-64 w-64 sm:h-80 sm:w-80 max-w-full">
                       <Image src="/payment-qr.png" alt="收款二维码" fill className="object-contain" />
                     </div>
                     <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-center">
                       <p className="text-xs uppercase tracking-[0.4em] text-slate-500">校验码</p>
-                      <p className="font-mono text-3xl font-semibold text-slate-900">{success.orderCode}</p>
+                      <p className="font-mono text-2xl sm:text-3xl font-semibold text-slate-900 break-all">{success.orderCode}</p>
                     </div>
                     {success.totalCents !== null || success.hasPendingPrice ? (
                       <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 text-center text-sm text-slate-700">

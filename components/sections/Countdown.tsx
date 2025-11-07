@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Calendar } from "lucide-react";
 
 interface TimeLeft {
@@ -33,8 +33,6 @@ export default function Countdown() {
   const [mounted, setMounted] = useState(false);
   const [target, setTarget] = useState<number>(FALLBACK_TARGET);
   const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const ref = useRef<HTMLDivElement | null>(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
 
   useEffect(() => {
     const fetchCountdown = async () => {
@@ -79,7 +77,8 @@ export default function Countdown() {
           <motion.div
             key={unit.label}
             initial={{ opacity: 0, scale: 0.5 }}
-            animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
             className="bg-white rounded-2xl p-6 border border-primary/20"
           >
@@ -94,27 +93,29 @@ export default function Countdown() {
   };
 
   return (
-    <div ref={ref} className="relative -mt-16 md:-mt-24 pb-28 md:pb-36">
+    <div className="relative pt-8 sm:pt-12 md:pt-16 pb-20 sm:pb-28 md:pb-36">
       <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-          transition={{ duration: 0.6 }}
-          className="max-w-4xl mx-auto text-center"
-        >
+        <div className="max-w-4xl mx-auto text-center">
           <motion.div
-            initial={{ scale: 0 }}
-            animate={isInView ? { scale: 1 } : { scale: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            initial={{ scale: 0, opacity: 0 }}
+            whileInView={{ scale: 1, opacity: 1 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5 }}
             className="inline-block mb-6"
           >
             <Calendar className="w-12 h-12 text-primary mx-auto" />
           </motion.div>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-foreground">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-4xl md:text-5xl font-bold mb-4 text-foreground"
+          >
             距离华附春晚还有
-          </h2>
+          </motion.h2>
           {renderTimeUnits()}
-        </motion.div>
+        </div>
       </div>
     </div>
   );

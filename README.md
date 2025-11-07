@@ -45,7 +45,7 @@
     npm run prisma:generate
     ```
 
-9. **执行数据库迁移**
+9. **部署数据库**
 
     ```bash
     npx prisma migrate deploy
@@ -63,13 +63,13 @@
     npm start
     ```
 
-12. **使用 PM2 后台启动项目**
+12. **使用 PM2 启动项目**
 
     ```bash
     pm2 start npm --name "hffx-site" -- start
     ```
 
-13. **创建网站并启动反向代理**
+13. **启动反向代理**
 
     * **目标 URL：** `http://127.0.0.1:3000`
     * **发送域名：** `您的域名`

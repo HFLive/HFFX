@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { randomUUID } from "crypto";
 import { requireAdmin } from "@/lib/auth";
-import { readDanmaku, writeDanmaku, DanmakuRecord } from "@/lib/danmaku";
+import { readDanmaku } from "@/lib/danmaku";
+import { prisma } from "@/lib/prisma";
 
 const createSchema = z.object({
   text: z.string().trim().min(1, "请填写弹幕内容").max(120, "弹幕内容不宜超过120字符"),
@@ -50,19 +50,23 @@ export async function POST(request: Request) {
   }
 
   const color = normalizeColor(parsed.data.color);
-  const timestamp = new Date().toISOString();
-  const record: DanmakuRecord = {
-    id: randomUUID(),
-    text: parsed.data.text.trim(),
-    color,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
 
-  const records = await readDanmaku();
-  records.push(record);
-  await writeDanmaku(records);
+  const newDanmaku = await prisma.danmaku.create({
+    data: {
+      text: parsed.data.text.trim(),
+      color: color,
+    },
+  });
 
-  return NextResponse.json(record, { status: 201 });
+  return NextResponse.json(
+    {
+      id: newDanmaku.id,
+      text: newDanmaku.text,
+      color: newDanmaku.color,
+      createdAt: newDanmaku.createdAt.toISOString(),
+      updatedAt: newDanmaku.updatedAt.toISOString(),
+    },
+    { status: 201 }
+  );
 }
 

@@ -18,7 +18,7 @@ export default function SurveyEmbed({ surveys }: Props) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-white rounded-xl shadow-lg overflow-hidden border border-primary/10 p-12 text-center"
+        className="bg-white rounded-2xl overflow-hidden border border-gray-200 p-12 text-center"
       >
         <div className="text-foreground-light mb-2 text-xl">暂无问卷，敬请期待</div>
       </motion.div>
@@ -33,7 +33,7 @@ export default function SurveyEmbed({ surveys }: Props) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.5, delay: index * 0.1 }}
-          className="bg-white rounded-xl shadow-lg overflow-hidden border border-primary/10 flex flex-col"
+          className="bg-white rounded-2xl overflow-hidden border border-gray-200 hover:border-primary/40 transition-colors flex flex-col"
         >
           <div className="p-6 flex-1 flex flex-col justify-between">
             <div>
@@ -43,9 +43,9 @@ export default function SurveyEmbed({ surveys }: Props) {
             <div className="flex gap-4 mt-auto">
               <Link
                 href={`/survey/${survey.slug}`}
-                className="flex-1 inline-flex justify-center items-center gap-2 bg-primary hover:bg-primary-dark transition text-white py-2 px-4 rounded-lg font-semibold"
+                className="inline-flex justify-center items-center gap-1.5 bg-primary hover:bg-primary/90 transition-colors text-white text-sm py-2 px-4 rounded-lg border border-primary hover:border-primary/90 font-medium"
               >
-                填写
+                填写问卷
               </Link>
             </div>
           </div>

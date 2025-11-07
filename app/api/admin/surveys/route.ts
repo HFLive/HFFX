@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { readSurveys, writeSurveys, SurveyRecord } from "@/lib/survey";
+import { readSurveys } from "@/lib/survey";
+import { prisma } from "@/lib/prisma";
 
 const slugRegex = /^[a-z0-9-]+$/;
 
@@ -66,23 +67,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "参数错误", errors: parsed.error.flatten() }, { status: 400 });
   }
 
-  const surveys = await readSurveys();
-  if (surveys.some((item) => item.slug === parsed.data.slug)) {
+  const existingSurvey = await prisma.survey.findUnique({
+    where: { slug: parsed.data.slug },
+  });
+
+  if (existingSurvey) {
     return NextResponse.json({ message: "slug 已存在，请更换" }, { status: 409 });
   }
 
-  const timestamp = new Date().toISOString();
-  const newRecord: SurveyRecord = {
-    slug: parsed.data.slug,
-    title: parsed.data.title,
-    description: parsed.data.description,
-    url: parsed.data.url,
-    embedHtml: parsed.data.embedHtml,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
+  const newSurvey = await prisma.survey.create({
+    data: {
+      slug: parsed.data.slug,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      url: parsed.data.url,
+      embedHtml: parsed.data.embedHtml,
+    },
+  });
 
-  await writeSurveys([...surveys, newRecord]);
-  return NextResponse.json(newRecord, { status: 201 });
+  return NextResponse.json(
+    {
+      id: newSurvey.id,
+      slug: newSurvey.slug,
+      title: newSurvey.title,
+      description: newSurvey.description,
+      url: newSurvey.url,
+      embedHtml: newSurvey.embedHtml,
+      createdAt: newSurvey.createdAt.toISOString(),
+      updatedAt: newSurvey.updatedAt.toISOString(),
+    },
+    { status: 201 }
+  );
 }
 

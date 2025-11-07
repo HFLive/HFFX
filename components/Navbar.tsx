@@ -16,10 +16,10 @@ const links = [
 
 const desktopTabClass = (active: boolean) =>
   [
-    "px-4 py-2 rounded-full transition-all duration-200 font-medium",
+    "relative px-4 py-2 transition-all duration-200 text-[15px]",
     active
-      ? "bg-primary text-white font-semibold shadow-sm"
-      : "text-primary/80 hover:bg-primary/10 hover:text-primary",
+      ? "text-foreground font-semibold"
+      : "text-foreground/60 hover:text-foreground font-normal",
   ].join(" ");
 
 export default function Navbar() {
@@ -47,20 +47,26 @@ export default function Navbar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/85 backdrop-blur border-b border-gray-200 shadow-sm py-2">
+    <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200/80 py-3">
       <div className="container mx-auto px-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 select-none">
-          <span className="font-black text-2xl text-primary tracking-tight">HFFX</span>
+        <Link href="/" className="flex items-center gap-2 select-none group">
+          <span className="font-black text-2xl text-black tracking-tight transition-transform duration-200 group-hover:scale-105">HFFX</span>
         </Link>
 
-        <ul className="hidden md:flex flex-wrap items-center gap-2 text-base">
-          {links.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} className={desktopTabClass(isActive(link.href))}>
-                {link.label}
-              </Link>
-            </li>
-          ))}
+        <ul className="hidden md:flex flex-wrap items-center gap-1 text-base">
+          {links.map((link) => {
+            const active = isActive(link.href);
+            return (
+              <li key={link.href}>
+                <Link href={link.href} className={desktopTabClass(active)}>
+                  {link.label}
+                  {active && (
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-0.5 bg-primary rounded-full" />
+                  )}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
 
         <button

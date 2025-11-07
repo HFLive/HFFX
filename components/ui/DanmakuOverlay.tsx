@@ -8,9 +8,11 @@ export default function DanmakuOverlay() {
   const { activeDanmaku } = useDanmaku();
   const EDGE_OPACITY = 0.5;
 
+  const [mounted, setMounted] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(0);
 
   useEffect(() => {
+    setMounted(true);
     const updateWidth = () => {
       if (typeof window !== "undefined") {
         setViewportWidth(window.innerWidth);
@@ -24,7 +26,8 @@ export default function DanmakuOverlay() {
 
   const lines = useMemo(() => activeDanmaku.slice(0, 20), [activeDanmaku]);
 
-  if (lines.length === 0) {
+  // 在客户端完全挂载之前不渲染任何内容
+  if (!mounted || lines.length === 0 || viewportWidth === 0) {
     return null;
   }
 
@@ -111,8 +114,8 @@ function DanmakuItem({
   edgeOpacity: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const opacity = useMotionValue(edgeOpacity);
+  const x = useMotionValue(viewportWidth);
+  const opacity = useMotionValue(0);
   const [contentWidth, setContentWidth] = useState(0);
 
   useEffect(() => {
@@ -150,20 +153,35 @@ function DanmakuItem({
       return;
     }
 
-    const startX = viewportWidth + contentWidth * 1.2;
-    const endX = -contentWidth * 1.4;
+    // 移动端使用更小的偏移量，让弹幕更快进入视野
+    const isMobile = viewportWidth < 768;
+    const startOffsetMultiplier = isMobile ? 0.3 : 0.8;
+    const endOffsetMultiplier = isMobile ? 1.1 : 1.4;
+    
+    const startX = viewportWidth + contentWidth * startOffsetMultiplier;
+    const endX = -contentWidth * endOffsetMultiplier;
 
     x.stop();
     x.set(startX);
-    opacity.set(edgeOpacity);
-
-    const controls = animate(x, endX, {
-      duration: item.duration,
-      ease: "linear",
+    
+    let controls: ReturnType<typeof animate> | null = null;
+    
+    // 使用 requestAnimationFrame 确保在下一帧才开始动画
+    const rafId = requestAnimationFrame(() => {
+      opacity.set(edgeOpacity);
+      
+      controls = animate(x, endX, {
+        duration: item.duration,
+        ease: "linear",
+      });
     });
 
     return () => {
-      controls.stop();
+      cancelAnimationFrame(rafId);
+      if (controls) {
+        controls.stop();
+      }
+      x.stop();
     };
   }, [viewportWidth, contentWidth, item.duration, edgeOpacity, x, opacity]);
 

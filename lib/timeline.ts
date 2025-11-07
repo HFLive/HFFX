@@ -1,61 +1,67 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { prisma } from "./prisma";
 
 export type TimelineEvent = {
   id: string;
   title: string;
-  date?: string;
-  description?: string;
+  date?: string | null;
+  description?: string | null;
   completed?: boolean;
+  order?: number;
 };
 
 export type TimelineData = {
-  note?: string;
+  note?: string | null;
   events: TimelineEvent[];
 };
 
-const TIMELINE_FILE_PATH = path.join(process.cwd(), "data", "timeline.json");
-
-function normalizeEvent(raw: any): TimelineEvent | null {
-  if (!raw || typeof raw !== "object") return null;
-  const id = typeof raw.id === "string" ? raw.id.trim() : "";
-  const title = typeof raw.title === "string" ? raw.title.trim() : "";
-  if (!id || !title) return null;
-  const date = typeof raw.date === "string" ? raw.date.trim() : undefined;
-  const description = typeof raw.description === "string" ? raw.description.trim() : undefined;
-  const completed = typeof raw.completed === "boolean" ? raw.completed : false;
-  return { id, title, date, description, completed };
-}
-
 export async function readTimeline(): Promise<TimelineData> {
-  try {
-    const content = await fs.readFile(TIMELINE_FILE_PATH, "utf-8");
-    const parsed = JSON.parse(content);
-    const note = typeof parsed?.note === "string" ? parsed.note : undefined;
-    const eventsInput = Array.isArray(parsed?.events) ? parsed.events : [];
-    const events: TimelineEvent[] = [];
-    for (const item of eventsInput) {
-      const normalized = normalizeEvent(item);
-      if (normalized) events.push(normalized);
-    }
-    return { note, events };
-  } catch (error: any) {
-    if (error?.code === "ENOENT") {
-      return { note: undefined, events: [] };
-    }
-    throw error;
-  }
+  const events = await prisma.timelineEvent.findMany({
+    orderBy: { order: "asc" },
+  });
+
+  const setting = await prisma.siteSetting.findUnique({
+    where: { key: "timeline_note" },
+  });
+
+  return {
+    note: setting?.value || null,
+    events: events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      description: event.description,
+      completed: event.completed,
+      order: event.order,
+    })),
+  };
 }
 
 export async function writeTimeline(data: TimelineData): Promise<void> {
-  const serialized = JSON.stringify(
-    {
-      note: data.note ?? "",
-      events: data.events,
-    },
-    null,
-    2
-  );
-  await fs.writeFile(TIMELINE_FILE_PATH, serialized, "utf-8");
+  // 使用事务更新所有数据
+  await prisma.$transaction(async (tx) => {
+    // 更新note
+    await tx.siteSetting.upsert({
+      where: { key: "timeline_note" },
+      update: { value: data.note || "" },
+      create: { key: "timeline_note", value: data.note || "" },
+    });
+
+    // 删除所有现有事件
+    await tx.timelineEvent.deleteMany({});
+
+    // 创建新事件
+    if (data.events.length > 0) {
+      await tx.timelineEvent.createMany({
+        data: data.events.map((event, index) => ({
+          id: event.id,
+          title: event.title,
+          date: event.date,
+          description: event.description,
+          completed: event.completed ?? false,
+          order: event.order ?? index,
+        })),
+      });
+    }
+  });
 }
 

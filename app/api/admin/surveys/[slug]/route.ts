@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth";
-import { readSurveys, writeSurveys } from "@/lib/survey";
+import { prisma } from "@/lib/prisma";
 
 const slugRegex = /^[a-z0-9-]+$/;
 
@@ -62,52 +62,72 @@ export async function PATCH(request: Request, { params }: { params: { slug: stri
     return NextResponse.json({ message: "参数错误", errors: parsed.error.flatten() }, { status: 400 });
   }
 
-  const surveys = await readSurveys();
-  const index = surveys.findIndex((item) => item.slug === params.slug);
-  if (index === -1) {
+  const existingSurvey = await prisma.survey.findUnique({
+    where: { slug: params.slug },
+  });
+
+  if (!existingSurvey) {
     return NextResponse.json({ message: "问卷不存在" }, { status: 404 });
   }
 
-  const target = surveys[index];
-  const nextSlug = parsed.data.slug ?? target.slug;
-  if (nextSlug !== target.slug && surveys.some((item, idx) => idx !== index && item.slug === nextSlug)) {
-    return NextResponse.json({ message: "slug 已存在，请更换" }, { status: 409 });
+  const nextSlug = parsed.data.slug ?? existingSurvey.slug;
+  if (nextSlug !== existingSurvey.slug) {
+    const conflictSurvey = await prisma.survey.findUnique({
+      where: { slug: nextSlug },
+    });
+    if (conflictSurvey) {
+      return NextResponse.json({ message: "slug 已存在，请更换" }, { status: 409 });
+    }
   }
 
-  const urlValue = parsed.data.url === "" ? undefined : parsed.data.url;
-  const embedValue = parsed.data.embedHtml === "" ? undefined : parsed.data.embedHtml;
-  if (!urlValue && !embedValue) {
+  const urlValue = parsed.data.url === "" ? null : parsed.data.url;
+  const embedValue = parsed.data.embedHtml === "" ? null : parsed.data.embedHtml;
+  
+  const finalUrl = urlValue !== undefined ? urlValue : existingSurvey.url;
+  const finalEmbed = embedValue !== undefined ? embedValue : existingSurvey.embedHtml;
+  
+  if (!finalUrl && !finalEmbed) {
     return NextResponse.json({ message: "请至少保留链接或嵌入代码" }, { status: 400 });
   }
 
-  const updated = {
-    ...target,
-    slug: nextSlug,
-    title: parsed.data.title ?? target.title,
-    description: parsed.data.description ?? target.description,
-    url: urlValue ?? target.url,
-    embedHtml: embedValue ?? target.embedHtml,
-    updatedAt: new Date().toISOString(),
-  };
+  const updatedSurvey = await prisma.survey.update({
+    where: { slug: params.slug },
+    data: {
+      slug: nextSlug,
+      title: parsed.data.title ?? existingSurvey.title,
+      description: parsed.data.description !== undefined ? parsed.data.description : existingSurvey.description,
+      url: finalUrl,
+      embedHtml: finalEmbed,
+    },
+  });
 
-  surveys.splice(index, 1, updated);
-  await writeSurveys(surveys);
-
-  return NextResponse.json(updated);
+  return NextResponse.json({
+    id: updatedSurvey.id,
+    slug: updatedSurvey.slug,
+    title: updatedSurvey.title,
+    description: updatedSurvey.description,
+    url: updatedSurvey.url,
+    embedHtml: updatedSurvey.embedHtml,
+    createdAt: updatedSurvey.createdAt.toISOString(),
+    updatedAt: updatedSurvey.updatedAt.toISOString(),
+  });
 }
 
 export async function DELETE(_request: Request, { params }: { params: { slug: string } }) {
   const guard = adminGuard();
   if (guard) return guard;
 
-  const surveys = await readSurveys();
-  const index = surveys.findIndex((item) => item.slug === params.slug);
-  if (index === -1) {
+  const existingSurvey = await prisma.survey.findUnique({
+    where: { slug: params.slug },
+  });
+
+  if (!existingSurvey) {
     return NextResponse.json({ message: "问卷不存在" }, { status: 404 });
   }
 
-  surveys.splice(index, 1);
-  await writeSurveys(surveys);
+  await prisma.survey.delete({
+    where: { slug: params.slug },
+  });
 
   return NextResponse.json({ message: "已删除问卷" });
 }

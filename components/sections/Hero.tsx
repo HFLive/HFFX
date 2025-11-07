@@ -9,15 +9,10 @@ import { DanmakuProvider } from "@/components/ui/DanmakuProvider";
 export default function Hero() {
   return (
     <DanmakuProvider>
-      <div className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
+      <div className="relative flex items-center justify-center overflow-hidden pt-12 pb-16 sm:pb-20 md:pb-24">
         <DanmakuOverlay />
-        {/* 背景装饰 */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-        </div>
 
-        <div className="container mx-auto px-4 pt-12 relative z-10">
+        <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             {/* Logo 占位符 */}
             <motion.div
@@ -66,11 +61,19 @@ export default function Hero() {
         >
           <Link
             href="/survey/messages"
-            className="group block rounded-2xl border border-white/30 bg-white/90 px-4 py-3 text-right shadow-xl backdrop-blur-md transition hover:-translate-y-1 hover:bg-white"
+            className="group relative block rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-white via-white to-primary/5 px-6 py-4 text-right shadow-2xl backdrop-blur-md transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 hover:shadow-[0_20px_50px_-12px] hover:border-primary/60"
           >
-            <div className="text-xs font-semibold uppercase tracking-wide text-primary/80">弹幕征集中</div>
-            <div className="mt-1 text-sm font-medium text-foreground transition group-hover:text-primary">
-              分享你的返校寄语 →
+            {/* 脉冲动画背景 */}
+            <div className="absolute inset-0 rounded-2xl bg-primary/5 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            
+            <div className="relative">
+              <div className="flex items-center gap-2 justify-end mb-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <div className="text-sm font-bold uppercase tracking-wider text-primary">弹幕征集中</div>
+              </div>
+              <div className="text-base sm:text-lg font-semibold text-foreground transition-all duration-300 group-hover:text-primary group-hover:scale-105">
+                分享你的返校寄语 →
+              </div>
             </div>
           </Link>
         </motion.div>

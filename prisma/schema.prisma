@@ -59,3 +59,41 @@ model OrderItem {
   unitPrice  Int?
   createdAt  DateTime        @default(now())
 }
+
+model Survey {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?
+  url         String?
+  embedHtml   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  title       String
+  date        String?
+  description String?
+  completed   Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Danmaku {
+  id        String   @id @default(cuid())
+  text      String
+  color     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
