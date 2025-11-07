@@ -18,16 +18,22 @@ export default function AdminLoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
+        credentials: "include", // 确保包含 cookies
       });
+      
+      const data = await response.json().catch(() => ({}));
+      
       if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "登录失败");
       }
-      router.replace("/admin");
-      router.refresh();
+      
+      // 登录成功，等待一小段时间确保 cookie 已设置
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // 使用 window.location 进行完整的页面重定向，确保 cookie 生效
+      window.location.href = "/admin";
     } catch (err: any) {
       setError(err.message ?? "登录失败，请稍后再试");
-    } finally {
       setLoading(false);
     }
   };

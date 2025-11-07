@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_SECRET = process.env.ADMIN_SECRET ?? "hffx-secret";
@@ -19,15 +20,24 @@ export function verifyAdminPassword(password: string) {
   return password === ADMIN_PASSWORD;
 }
 
-export function createAdminSession() {
+// 支持传入 NextResponse 对象来设置 cookie
+export function createAdminSession(response?: NextResponse) {
   const token = getExpectedHash();
-  cookies().set(COOKIE_NAME, token, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 12, // 12 小时
-  });
+  };
+
+  if (response) {
+    // 如果提供了 response 对象，直接在响应上设置 cookie
+    response.cookies.set(COOKIE_NAME, token, cookieOptions);
+  } else {
+    // 否则使用 cookies() API
+    cookies().set(COOKIE_NAME, token, cookieOptions);
+  }
 }
 
 export function destroyAdminSession() {
