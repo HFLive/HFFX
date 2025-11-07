@@ -63,7 +63,7 @@
     npm start
     ```
 
-12. **使用 PM2 后台运行项目**
+12. **使用 PM2 后台启动项目**
 
     ```bash
     pm2 start npm --name "hffx-site" -- start
