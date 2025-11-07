@@ -35,7 +35,7 @@ export default function Timeline({ timeline }: Props) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", updateOffset);
     };
-  }, [timeline.events.length]);
+  }, [timeline.events, timeline.events.length]);
 
   useEffect(() => {
     const calculateCircleOffsets = () => {
@@ -60,7 +60,7 @@ export default function Timeline({ timeline }: Props) {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", calculateCircleOffsets);
     };
-  }, [timeline.events.length]);
+  }, [timeline.events, timeline.events.length]);
 
   return (
     <section className="pt-0 pb-20 bg-background">

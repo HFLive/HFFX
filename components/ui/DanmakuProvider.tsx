@@ -121,7 +121,7 @@ export function DanmakuProvider({ children }: { children: React.ReactNode }) {
       }
       timerRef.current = null;
     };
-  }, [pool, mounted]);
+  }, [pool, mounted, activeDanmaku.length]);
 
   const value = useMemo(() => ({ danmaku, activeDanmaku }), [danmaku, activeDanmaku]);
 

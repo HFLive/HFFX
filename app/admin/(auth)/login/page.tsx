@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
               admin access
             </h1>
             <p className="font-mono text-xs text-emerald-500">
-              > 输入认证密钥以解除安全防护
+              {"> 输入认证密钥以解除安全防护"}
             </p>
           </div>
 
