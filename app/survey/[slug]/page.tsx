@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { readSurveyBySlug } from "@/lib/survey";
 
 export default async function SurveyDynamicPage({ params }: { params: { slug: string } }) {

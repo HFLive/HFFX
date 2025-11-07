@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { Metadata } from "next";
 import SurveyEmbed from "@/components/survey/SurveyEmbed";
 import SurveyHero from "@/components/survey/SurveyHero";

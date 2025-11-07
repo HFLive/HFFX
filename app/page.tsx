@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import Hero from "@/components/sections/Hero";
 import Countdown from "@/components/sections/Countdown";
 

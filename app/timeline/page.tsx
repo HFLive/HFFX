@@ -1,3 +1,6 @@
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import TimelineSection from "@/components/sections/Timeline";
 import { readTimeline } from "@/lib/timeline";
 
