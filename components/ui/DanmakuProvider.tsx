@@ -19,6 +19,8 @@ type DanmakuContextValue = {
 const DanmakuContext = createContext<DanmakuContextValue>({ danmaku: [], activeDanmaku: [] });
 
 const TRACK_COUNT = 6;
+const MAX_ACTIVE_ITEMS = 40;
+const REFRESH_INTERVAL = 30000;
 
 export function DanmakuProvider({ children }: { children: React.ReactNode }) {
   const [danmaku, setDanmaku] = useState<DanmakuRecord[]>([]);
@@ -27,8 +29,10 @@ export function DanmakuProvider({ children }: { children: React.ReactNode }) {
   const indexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startupTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const removalTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const hasStartedRef = useRef(false);
   const isMountedRef = useRef(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -38,26 +42,64 @@ export function DanmakuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    return () => {
+      removalTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      removalTimeoutsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
     if (!mounted) return;
-    
+
     let isActive = true;
+    let isFetching = false;
+
+    const applyDanmaku = (incoming: DanmakuRecord[]) => {
+      setDanmaku((prev) => {
+        if (prev.length === incoming.length) {
+          const unchanged = prev.every((item, index) => {
+            const nextItem = incoming[index];
+            return item.id === nextItem.id && item.updatedAt === nextItem.updatedAt;
+          });
+          if (unchanged) {
+            return prev;
+          }
+        }
+        return incoming;
+      });
+    };
+
     const load = async () => {
+      if (isFetching) return;
+      isFetching = true;
       try {
         const response = await fetch("/api/danmaku", { cache: "no-store" });
         if (!response.ok) return;
         const data = (await response.json()) as DanmakuRecord[];
-        if (isActive) setDanmaku(data);
+        if (isActive) {
+          applyDanmaku(data);
+        }
       } catch (error) {
         // ignore
+      } finally {
+        isFetching = false;
       }
     };
+
     load();
+
+    refreshTimerRef.current = setInterval(load, REFRESH_INTERVAL);
+
     return () => {
       isActive = false;
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
     };
   }, [mounted]);
 
@@ -97,15 +139,35 @@ export function DanmakuProvider({ children }: { children: React.ReactNode }) {
       const top = 8 + (track * 70) / TRACK_COUNT + Math.random() * 4;
       const key = `${danmakuItem.id}-${Date.now()}-${Math.random()}`;
 
-      setActiveDanmaku((prev) => [
-        ...prev,
-        { key, text: danmakuItem.text, color: danmakuItem.color, top, duration },
-      ]);
+      setActiveDanmaku((prev) => {
+        const appended = [
+          ...prev,
+          { key, text: danmakuItem.text, color: danmakuItem.color, top, duration },
+        ];
 
-      setTimeout(() => {
+        if (appended.length <= MAX_ACTIVE_ITEMS) {
+          return appended;
+        }
+
+        const overflow = appended.length - MAX_ACTIVE_ITEMS;
+        const removedItems = appended.slice(0, overflow);
+        removedItems.forEach((item) => {
+          const timeoutId = removalTimeoutsRef.current.get(item.key);
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+            removalTimeoutsRef.current.delete(item.key);
+          }
+        });
+
+        return appended.slice(overflow);
+      });
+
+      const removalTimeout = setTimeout(() => {
         if (!isMountedRef.current) return;
         setActiveDanmaku((current) => current.filter((item) => item.key !== key));
+        removalTimeoutsRef.current.delete(key);
       }, duration * 1000 + 100);
+      removalTimeoutsRef.current.set(key, removalTimeout);
     };
 
     const scheduleRuns = () => {
