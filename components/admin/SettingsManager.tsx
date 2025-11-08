@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const defaultTarget = "2025-12-30T18:00";
+const defaultQrPath = "/payment-qr.png";
 
 const tipItems = [
-  "收款码路径为 public/payment-qr.png",
+  "收款码支持在此上传，默认位于 public/payment-qr.png",
   "库存数量会在订单提交时自动扣减，可在商品管理中手动调整",
   "后台密码通过环境变量 ADMIN_PASSWORD 控制",
   "Michael Cai, 20251107, All Rights Reserved",
@@ -14,19 +15,44 @@ const tipItems = [
 
 type Props = {
   countdownTarget: string | null;
-  loading: boolean;
+  countdownLoading: boolean;
   reloadCountdown: () => Promise<void>;
+  paymentQrPath: string | null;
+  paymentQrLoading: boolean;
+  reloadPaymentQr: () => Promise<void>;
 };
 
-export default function SettingsManager({ countdownTarget, loading, reloadCountdown }: Props) {
+export default function SettingsManager({
+  countdownTarget,
+  countdownLoading,
+  reloadCountdown,
+  paymentQrPath,
+  paymentQrLoading,
+  reloadPaymentQr,
+}: Props) {
   const [value, setValue] = useState(countdownTarget ?? defaultTarget);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     setValue(countdownTarget ?? defaultTarget);
   }, [countdownTarget]);
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,6 +78,69 @@ export default function SettingsManager({ countdownTarget, loading, reloadCountd
     }
   };
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setUploadError(null);
+    setUploadSuccess(null);
+    if (!file) {
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setUploadError("仅支持上传图片文件");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("文件大小不能超过 5MB");
+      event.target.value = "";
+      return;
+    }
+    setSelectedFile(file);
+    setPreviewUrl((prev) => {
+      if (prev) {
+        URL.revokeObjectURL(prev);
+      }
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      setUploadError("请选择要上传的图片");
+      return;
+    }
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      const response = await fetch("/api/admin/settings/payment-qr", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message ?? "上传失败");
+      }
+      setUploadSuccess("收款码已更新");
+      setSelectedFile(null);
+      setPreviewUrl(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      await reloadPaymentQr();
+    } catch (err: any) {
+      setUploadError(err.message ?? "上传失败，请稍后再试");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const effectiveQrPath = previewUrl ?? paymentQrPath ?? defaultQrPath;
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
@@ -73,10 +162,85 @@ export default function SettingsManager({ countdownTarget, loading, reloadCountd
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
-          <Button type="submit" disabled={saving || loading} className="w-full md:w-auto">
+          <Button type="submit" disabled={saving || countdownLoading} className="w-full md:w-auto">
             {saving ? "保存中..." : "保存设置"}
           </Button>
         </form>
+      </section>
+
+      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold text-foreground">收款码管理</h2>
+            <p className="text-sm text-foreground-light">
+              上传新的收款二维码后，商城页面会即时显示最新图片。建议使用正方形、高分辨率的二维码。
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)] md:items-start">
+          <div className="flex flex-col items-center gap-3 text-sm text-foreground-light">
+            <div className="relative h-48 w-48 overflow-hidden rounded-2xl border border-primary/20 bg-primary/5">
+              {paymentQrLoading && !previewUrl ? (
+                <div className="flex h-full w-full items-center justify-center text-xs text-foreground-light/70">
+                  加载中...
+                </div>
+              ) : (
+                <img
+                  src={effectiveQrPath}
+                  alt="当前收款二维码"
+                  className="h-full w-full object-contain"
+                />
+              )}
+            </div>
+            <span className="text-xs text-foreground-light/80">
+              当前路径：{paymentQrPath ?? defaultQrPath}
+            </span>
+          </div>
+          <div className="space-y-4">
+            <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              <span>上传新二维码</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="rounded-xl border border-primary/20 px-3 py-2 text-sm"
+                disabled={uploading}
+              />
+              <span className="text-xs text-foreground-light">
+                支持 JPG、PNG、WEBP 等常见图片格式，体积需小于 5MB。
+              </span>
+            </label>
+            {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
+            {uploadSuccess && <p className="text-sm text-green-600">{uploadSuccess}</p>}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="button"
+                onClick={handleUpload}
+                disabled={uploading || !selectedFile}
+                className="w-full md:w-auto"
+              >
+                {uploading ? "上传中..." : "上传并替换"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setSelectedFile(null);
+                  setPreviewUrl(null);
+                  setUploadError(null);
+                  setUploadSuccess(null);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                  }
+                }}
+                disabled={uploading}
+              >
+                清除选择
+              </Button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">

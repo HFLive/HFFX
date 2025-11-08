@@ -102,6 +102,8 @@ export default function AdminDashboard() {
   const [timelineLoading, setTimelineLoading] = useState(true);
   const [countdownTarget, setCountdownTarget] = useState<string | null>(null);
   const [countdownLoading, setCountdownLoading] = useState(true);
+  const [paymentQrPath, setPaymentQrPath] = useState<string | null>(null);
+  const [paymentQrLoading, setPaymentQrLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("products");
   const [orderPage, setOrderPage] = useState(1);
@@ -244,6 +246,28 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadPaymentQr = async () => {
+    setPaymentQrLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/settings/payment-qr");
+      if (response.status === 401) {
+        window.location.href = "/admin/login";
+        return;
+      }
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message ?? "加载收款码失败");
+      }
+      const data = await response.json();
+      setPaymentQrPath(typeof data?.path === "string" ? data.path : null);
+    } catch (err: any) {
+      setError(err.message ?? "加载失败，请稍后再试");
+    } finally {
+      setPaymentQrLoading(false);
+    }
+  };
+
   const loadInitialData = async () => {
     setError(null);
     setProductsLoading(true);
@@ -252,14 +276,24 @@ export default function AdminDashboard() {
     setDanmakuLoading(true);
     setTimelineLoading(true);
     setCountdownLoading(true);
+    setPaymentQrLoading(true);
     try {
-      const [productsRes, ordersRes, surveysRes, danmakuRes, timelineRes, countdownRes] = await Promise.all([
+      const [
+        productsRes,
+        ordersRes,
+        surveysRes,
+        danmakuRes,
+        timelineRes,
+        countdownRes,
+        paymentQrRes,
+      ] = await Promise.all([
         fetch("/api/admin/products"),
         fetch(`/api/admin/orders?page=1&pageSize=${ORDER_PAGE_SIZE}`),
         fetch("/api/admin/surveys"),
         fetch("/api/admin/danmaku"),
         fetch("/api/admin/timeline"),
         fetch("/api/admin/settings/countdown"),
+        fetch("/api/admin/settings/payment-qr"),
       ]);
 
       if (
@@ -268,7 +302,8 @@ export default function AdminDashboard() {
         surveysRes.status === 401 ||
         danmakuRes.status === 401 ||
         timelineRes.status === 401 ||
-        countdownRes.status === 401
+        countdownRes.status === 401 ||
+        paymentQrRes.status === 401
       ) {
         window.location.href = "/admin/login";
         return;
@@ -298,6 +333,10 @@ export default function AdminDashboard() {
         const data = await countdownRes.json().catch(() => ({}));
         throw new Error(data.message ?? "加载倒计时设置失败");
       }
+      if (!paymentQrRes.ok) {
+        const data = await paymentQrRes.json().catch(() => ({}));
+        throw new Error(data.message ?? "加载收款码失败");
+      }
 
       const productsData = await productsRes.json();
       const ordersData = (await ordersRes.json()) as OrderResponse;
@@ -305,6 +344,7 @@ export default function AdminDashboard() {
       const danmakuData = await danmakuRes.json();
       const timelineData = await timelineRes.json();
       const countdownData = await countdownRes.json();
+      const paymentQrData = await paymentQrRes.json();
 
       setProducts(productsData);
       setOrdersData(ordersData);
@@ -316,6 +356,7 @@ export default function AdminDashboard() {
         events: Array.isArray(timelineData.events) ? timelineData.events : [],
       });
       setCountdownTarget(typeof countdownData?.target === "string" ? countdownData.target : null);
+      setPaymentQrPath(typeof paymentQrData?.path === "string" ? paymentQrData.path : null);
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
@@ -325,6 +366,7 @@ export default function AdminDashboard() {
       setDanmakuLoading(false);
       setTimelineLoading(false);
       setCountdownLoading(false);
+      setPaymentQrLoading(false);
     }
   };
 
@@ -412,8 +454,11 @@ export default function AdminDashboard() {
         <TabsContent value="settings">
           <SettingsManager
             countdownTarget={countdownTarget}
-            loading={countdownLoading}
+            countdownLoading={countdownLoading}
             reloadCountdown={loadCountdown}
+            paymentQrPath={paymentQrPath}
+            paymentQrLoading={paymentQrLoading}
+            reloadPaymentQr={loadPaymentQr}
           />
         </TabsContent>
       </Tabs>

@@ -29,6 +29,7 @@ type DeliveryMethod = (typeof DELIVERY_METHODS)[number]["value"];
 
 type Props = {
   products: ShopProduct[];
+  paymentQrPath: string;
 };
 
 type FormState = {
@@ -231,7 +232,7 @@ function ProductImageZoom({ src, alt }: ProductImageZoomProps) {
   );
 }
 
-export default function ShopClient({ products }: Props) {
+export default function ShopClient({ products, paymentQrPath }: Props) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [form, setForm] = useState<FormState>(initialFormState);
   const [submitting, setSubmitting] = useState(false);
@@ -726,7 +727,12 @@ export default function ShopClient({ products }: Props) {
                   </header>
                   <div className="flex flex-col items-center gap-4">
                     <div className="relative h-64 w-64 sm:h-80 sm:w-80 max-w-full">
-                      <Image src="/payment-qr.png" alt="收款二维码" fill className="object-contain" />
+                      <Image
+                        src={paymentQrPath || "/payment-qr.png"}
+                        alt="收款二维码"
+                        fill
+                        className="object-contain"
+                      />
                     </div>
                     <div className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-center">
                       <p className="text-xs uppercase tracking-[0.4em] text-slate-500">校验码</p>

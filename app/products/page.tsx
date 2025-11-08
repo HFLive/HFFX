@@ -3,6 +3,7 @@ export const revalidate = 0;
 
 import ShopClient from "@/components/shop/ShopClient";
 import { prisma } from "@/lib/prisma";
+import { readPaymentQr } from "@/lib/payment-qr";
 
 function formatPrice(price: number | null) {
   if (price == null) return null;
@@ -33,11 +34,12 @@ export default async function ProductsPage() {
       inventory: variant.inventory,
     })),
   }));
+  const paymentQr = await readPaymentQr();
 
   return (
     <div className="min-h-screen bg-background py-12">
       <div className="container mx-auto px-4">
-        <ShopClient products={payload} />
+        <ShopClient products={payload} paymentQrPath={paymentQr.path} />
       </div>
     </div>
   );
