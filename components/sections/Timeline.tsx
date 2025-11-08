@@ -11,56 +11,67 @@ type Props = {
 
 export default function Timeline({ timeline }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const firstNodeRef = useRef<HTMLDivElement | null>(null);
-  const [lineOffset, setLineOffset] = useState<number>(32);
+  const rowRefs = useRef<(HTMLDivElement | null)[]>([]);
   const circleRefs = useRef<(HTMLDivElement | null)[]>([]);
   const titleRefs = useRef<(HTMLHeadingElement | null)[]>([]);
   const [circleOffsets, setCircleOffsets] = useState<number[]>([]);
+  const [lineHeights, setLineHeights] = useState<number[]>([]);
 
   useEffect(() => {
-    const updateOffset = () => {
-      if (!containerRef.current || !firstNodeRef.current) return;
-
-      const containerRect = containerRef.current.getBoundingClientRect();
-      const nodeRect = firstNodeRef.current.getBoundingClientRect();
-      const offset = nodeRect.left - containerRect.left + nodeRect.width / 2;
-
-      setLineOffset(offset);
-    };
-
-    const raf = requestAnimationFrame(updateOffset);
-    window.addEventListener("resize", updateOffset);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", updateOffset);
-    };
-  }, [timeline.events, timeline.events.length]);
-
-  useEffect(() => {
-    const calculateCircleOffsets = () => {
+    const calculatePositions = () => {
       const offsets = timeline.events.map((_, index) => {
-        const circleEl = circleRefs.current[index];
+        const rowEl = rowRefs.current[index];
         const titleEl = titleRefs.current[index];
-        if (!circleEl || !titleEl) return 0;
+        if (!rowEl || !titleEl) return 0;
 
-        const circleRect = circleEl.getBoundingClientRect();
+        // 获取行容器和标题的位置
+        const rowRect = rowEl.getBoundingClientRect();
         const titleRect = titleEl.getBoundingClientRect();
-        const circleCenterY = circleRect.top + circleRect.height / 2;
+        
+        // 行顶部 + 32px（圆圈半径）= 圆圈中心的默认位置
+        const defaultCircleCenterY = rowRect.top + 32;
+        // 标题中心
         const titleCenterY = titleRect.top + titleRect.height / 2;
-        return titleCenterY - circleCenterY;
+        
+        // 返回需要的偏移量
+        return titleCenterY - defaultCircleCenterY;
       });
       setCircleOffsets(offsets);
+
+      // 计算连接线的实际高度
+      const heights = timeline.events.map((_, index) => {
+        if (index >= timeline.events.length - 1) return 0;
+        
+        const currentRow = rowRefs.current[index];
+        const nextRow = rowRefs.current[index + 1];
+        if (!currentRow || !nextRow) return 0;
+
+        const currentRect = currentRow.getBoundingClientRect();
+        const nextRect = nextRow.getBoundingClientRect();
+        
+        // 从当前圆圈底部到下一个圆圈顶部的距离
+        // 当前行顶部 + 当前偏移 + 64px（圆圈高度）到下一行顶部 + 下一个偏移
+        const currentCircleBottom = 64 + offsets[index];
+        const nextCircleTop = (nextRect.top - currentRect.top) + offsets[index + 1];
+        
+        return nextCircleTop - currentCircleBottom;
+      });
+      setLineHeights(heights);
     };
 
-    const raf = requestAnimationFrame(calculateCircleOffsets);
-    window.addEventListener("resize", calculateCircleOffsets);
+    // 多次延迟计算，确保 DOM 完全渲染和动画完成
+    const timer1 = setTimeout(calculatePositions, 50);
+    const timer2 = setTimeout(calculatePositions, 200);
+    const timer3 = setTimeout(calculatePositions, 600);
+    window.addEventListener("resize", calculatePositions);
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", calculateCircleOffsets);
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+      window.removeEventListener("resize", calculatePositions);
     };
-  }, [timeline.events, timeline.events.length]);
+  }, [timeline.events]);
 
   return (
     <section className="pt-0 pb-20 bg-background">
@@ -87,20 +98,13 @@ export default function Timeline({ timeline }: Props) {
             </motion.p>
           )}
           <div className="relative">
-            {/* 时间线连接线 */}
-            <motion.div
-              initial={{ scaleY: 0, opacity: 0 }}
-              whileInView={{ scaleY: 1, opacity: 1 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              style={{ left: `${lineOffset}px` }}
-              className="absolute top-0 bottom-0 w-px bg-primary/25 origin-top"
-            />
-
             <div className="space-y-6">
               {timeline.events.map((event, index) => (
                 <motion.div
                   key={event.id}
+                  ref={(el) => {
+                    rowRefs.current[index] = el;
+                  }}
                   initial={{ opacity: 0, y: 24 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-50px" }}
@@ -111,9 +115,6 @@ export default function Timeline({ timeline }: Props) {
                   <div
                     ref={(el) => {
                       circleRefs.current[index] = el;
-                      if (index === 0) {
-                        firstNodeRef.current = el;
-                      }
                     }}
                     className="relative z-10 flex-shrink-0"
                     style={{ transform: `translateY(${circleOffsets[index] ?? 0}px)` }}
@@ -125,6 +126,19 @@ export default function Timeline({ timeline }: Props) {
                         <div className="w-4 h-4 rounded-full bg-primary group-hover:scale-110 transition-transform" />
                       )}
                     </div>
+                    {/* 连接线到下一个节点 */}
+                    {index < timeline.events.length - 1 && lineHeights[index] !== undefined && (
+                      <motion.div
+                        initial={{ scaleY: 0, opacity: 0 }}
+                        whileInView={{ scaleY: 1, opacity: 1 }}
+                        viewport={{ once: true, margin: "-50px" }}
+                        transition={{ duration: 0.6, ease: "easeOut", delay: index * 0.08 }}
+                        className="absolute top-16 left-1/2 -translate-x-1/2 w-px bg-primary/25 origin-top"
+                        style={{ 
+                          height: `${lineHeights[index]}px` 
+                        }}
+                      />
+                    )}
                   </div>
 
                   {/* 内容卡片 */}
