@@ -411,7 +411,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="surveys">问卷</TabsTrigger>
           <TabsTrigger value="timeline">时间线</TabsTrigger>
           <TabsTrigger value="danmaku">弹幕</TabsTrigger>
-          <TabsTrigger value="settings">提示</TabsTrigger>
+          <TabsTrigger value="settings">设置</TabsTrigger>
         </TabsList>
 
         {error && (
