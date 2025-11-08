@@ -73,17 +73,17 @@ export default function OrderLookup() {
               type="text"
               value={orderCode}
               onChange={(event) => setOrderCode(event.target.value)}
-              className="rounded-xl border border-primary/20 px-3 py-2"
+              className="w-full rounded-xl border border-primary/20 px-3 py-2"
               placeholder="请输入付款时生成的校验码"
             />
           </label>
           <label className="flex flex-col gap-2">
             <span className="text-sm font-medium text-foreground">手机号</span>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
               <select
                 value={phoneCountry}
                 onChange={(event) => setPhoneCountry(event.target.value)}
-                className="w-36 rounded-xl border border-primary/20 px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-primary/20 px-3 py-2 text-sm sm:w-36"
               >
                 {PHONE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -95,7 +95,7 @@ export default function OrderLookup() {
                 type="tel"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                className="flex-1 rounded-xl border border-primary/20 px-3 py-2"
+                className="w-full rounded-xl border border-primary/20 px-3 py-2 sm:flex-1 sm:min-w-0"
                 placeholder="下单手机号"
               />
             </div>
