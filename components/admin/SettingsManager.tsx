@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 
 const defaultTarget = "2025-12-30T18:00";
 const defaultQrPath = "/payment-qr.png";
@@ -143,11 +143,8 @@ export default function SettingsManager({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <h2 className="text-2xl font-semibold text-foreground">首页倒计时设置</h2>
-        <p className="text-sm text-foreground-light">
-          修改倒计时截止时间后，首页 “距离华附春晚还有” 模块会实时使用新的目标时间。
-        </p>
         <form onSubmit={handleSubmit} className="grid gap-3 max-w-md">
           <label className="grid gap-2 text-sm font-medium text-foreground">
             <span>目标时间</span>
@@ -162,19 +159,16 @@ export default function SettingsManager({
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
-          <Button type="submit" disabled={saving || countdownLoading} className="w-full md:w-auto">
+          <AdminButton type="submit" disabled={saving || countdownLoading} className="w-full md:w-auto">
             {saving ? "保存中..." : "保存设置"}
-          </Button>
+          </AdminButton>
         </form>
       </section>
 
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold text-foreground">收款码管理</h2>
-            <p className="text-sm text-foreground-light">
-              上传新的收款二维码后，商城页面会即时显示最新图片。建议使用正方形、高分辨率的二维码。
-            </p>
           </div>
         </div>
         <div className="grid gap-6 md:grid-cols-[minmax(0,240px)_minmax(0,1fr)] md:items-start">
@@ -214,17 +208,17 @@ export default function SettingsManager({
             {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
             {uploadSuccess && <p className="text-sm text-green-600">{uploadSuccess}</p>}
             <div className="flex flex-wrap gap-3">
-              <Button
+              <AdminButton
                 type="button"
                 onClick={handleUpload}
                 disabled={uploading || !selectedFile}
                 className="w-full md:w-auto"
               >
                 {uploading ? "上传中..." : "上传并替换"}
-              </Button>
-              <Button
+              </AdminButton>
+              <AdminButton
                 type="button"
-                variant="outline"
+                tone="plain"
                 onClick={() => {
                   setSelectedFile(null);
                   setPreviewUrl(null);
@@ -237,13 +231,13 @@ export default function SettingsManager({
                 disabled={uploading}
               >
                 清除选择
-              </Button>
+              </AdminButton>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <h2 className="text-2xl font-semibold text-foreground">提示</h2>
         <ul className="list-disc list-inside text-foreground-light space-y-2">
           {tipItems.map((tip) => (

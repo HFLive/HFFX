@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 import type { AdminTimeline } from "@/components/admin/AdminDashboard";
 
 const initialNewEvent = {
@@ -216,7 +216,7 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-foreground">时间线备注</h2>
           <span className="text-sm text-foreground-light">共 {count} 条事件</span>
@@ -229,20 +229,17 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
             rows={3}
             placeholder="例如：各时间会依据实际情况调整，网站将同步更新"
           />
-          <div className="flex items-center gap-2 text-xs text-foreground-light">
-            <span>更新备注会同步到前台时间线页顶部展示。</span>
-          </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
           <div className="flex justify-end">
-            <Button type="button" onClick={handleSaveNote} disabled={savingNote}>
+            <AdminButton type="button" tone="plain" onClick={handleSaveNote} disabled={savingNote}>
               {savingNote ? "保存中..." : "保存备注"}
-            </Button>
+            </AdminButton>
           </div>
         </div>
       </section>
 
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <h2 className="text-2xl font-semibold text-foreground">新增事件</h2>
         <form className="grid gap-3" onSubmit={handleCreateEvent}>
           <div className="grid md:grid-cols-2 gap-3">
@@ -285,20 +282,20 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
             />
             标记为已完成
           </label>
-          <Button type="submit" disabled={creating}>
+          <AdminButton type="submit" disabled={creating}>
             {creating ? "添加中..." : "添加事件"}
-          </Button>
+          </AdminButton>
         </form>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">时间线事件</h2>
         {loading ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
+          <div className="admin-panel text-center">
             正在加载时间线...
           </div>
         ) : events.length === 0 ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
+          <div className="admin-panel text-center">
             暂无事件，请先新增。
           </div>
         ) : (
@@ -306,29 +303,26 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
             {events.map((event, index) => {
               const isProcessing = savingId === event.id || deletingId === event.id;
               return (
-                <div
-                  key={event.id}
-                  className="relative rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4"
-                >
+                <div key={event.id} className="relative admin-panel space-y-4">
                   <div className="flex items-center gap-2 absolute right-4 top-4">
-                    <Button
+                    <AdminButton
                       type="button"
-                      variant="ghost"
+                      tone="ghost"
                       onClick={() => handleMoveEvent(event.id, "up")}
                       disabled={isProcessing || index === 0}
                       className="text-xs"
                     >
                       上移
-                    </Button>
-                    <Button
+                    </AdminButton>
+                    <AdminButton
                       type="button"
-                      variant="ghost"
+                      tone="ghost"
                       onClick={() => handleMoveEvent(event.id, "down")}
                       disabled={isProcessing || index === events.length - 1}
                       className="text-xs"
                     >
                       下移
-                    </Button>
+                    </AdminButton>
                   </div>
                   <div className="grid md:grid-cols-2 gap-3">
                     <label className="grid gap-2 text-sm font-medium text-foreground">
@@ -392,23 +386,22 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
                       标记为已完成
                     </label>
                     <div className="flex items-center gap-2">
-                      <Button
+                      <AdminButton
                         type="button"
-                        variant="outline"
+                        tone="plain"
                         onClick={() => handleSaveEvent(event)}
                         disabled={isProcessing}
                       >
                         {savingId === event.id ? "保存中..." : "保存"}
-                      </Button>
-                      <Button
+                      </AdminButton>
+                      <AdminButton
                         type="button"
-                        variant="ghost"
+                        tone="danger"
                         onClick={() => handleDeleteEvent(event)}
                         disabled={isProcessing}
-                        className="text-red-500 hover:text-red-600"
                       >
                         {deletingId === event.id ? "删除中..." : "删除"}
-                      </Button>
+                      </AdminButton>
                     </div>
                   </div>
                 </div>

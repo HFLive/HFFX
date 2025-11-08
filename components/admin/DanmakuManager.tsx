@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 import type { AdminDanmaku } from "@/components/admin/AdminDashboard";
 
 type Props = {
@@ -162,7 +162,7 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-foreground">新增弹幕</h2>
           <span className="text-sm text-foreground-light">当前共 {totalCount} 条弹幕</span>
@@ -185,23 +185,22 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
               placeholder="#FF5722 或 rgba(255,87,34,0.85)"
             />
           </div>
-          <p className="text-xs text-foreground-light">建议控制在 120 字以内，可设置颜色用于区分不同弹幕。</p>
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
-          <Button type="submit" disabled={creating} className="w-full">
+          <AdminButton type="submit" disabled={creating} className="w-full md:w-auto">
             {creating ? "添加中..." : "添加弹幕"}
-          </Button>
+          </AdminButton>
         </form>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">弹幕列表</h2>
         {loading ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
+          <div className="admin-panel text-center">
             正在加载弹幕...
           </div>
         ) : danmaku.length === 0 ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
+          <div className="admin-panel text-center">
             暂无弹幕，请先新增。
           </div>
         ) : (
@@ -209,10 +208,7 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
             {editableItems.map((item) => {
               const isProcessing = savingId === item.id || deletingId === item.id;
               return (
-                <div
-                  key={item.id}
-                  className="rounded-3xl border border-primary/10 bg-white p-5 shadow-sm space-y-3"
-                >
+                <div key={item.id} className="admin-panel space-y-3">
                   <textarea
                     value={item.text}
                     onChange={(event) =>
@@ -248,23 +244,22 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
                       </div>
                     </div>
                     <div className="flex items-center justify-end gap-2">
-                      <Button
+                      <AdminButton
                         type="button"
-                        variant="outline"
+                        tone="plain"
                         onClick={() => handleSave(item)}
                         disabled={isProcessing}
                       >
                         {savingId === item.id ? "保存中..." : "保存"}
-                      </Button>
-                      <Button
+                      </AdminButton>
+                      <AdminButton
                         type="button"
-                        variant="ghost"
+                        tone="danger"
                         onClick={() => handleDelete(item)}
                         disabled={isProcessing}
-                        className="text-red-500 hover:text-red-600"
                       >
                         {deletingId === item.id ? "删除中..." : "删除"}
-                      </Button>
+                      </AdminButton>
                     </div>
                   </div>
                 </div>

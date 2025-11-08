@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { AdminProduct } from "./AdminDashboard";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 import { cn } from "@/lib/utils";
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -45,6 +45,18 @@ export default function ProductManager({ products, loading, reload }: Props) {
       ...prev,
       variants: [...prev.variants, { name: "新款式", price: "", inventory: 0 }],
     }));
+  };
+
+  const handleRemoveVariantField = (index: number) => {
+    setNewProduct((prev) => {
+      if (prev.variants.length <= 1) {
+        return prev;
+      }
+      return {
+        ...prev,
+        variants: prev.variants.filter((_, idx) => idx !== index),
+      };
+    });
   };
 
   const handleVariantChange = (index: number, field: "name" | "price" | "inventory", value: string | number) => {
@@ -213,105 +225,107 @@ export default function ProductManager({ products, loading, reload }: Props) {
   };
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
-        <h2 className="text-2xl font-semibold text-foreground">新增商品</h2>
-        <form className="grid gap-3" onSubmit={handleCreateProduct}>
+    <div className="space-y-8">
+      <section className="admin-panel space-y-5">
+        <header className="space-y-2">
+          <p className="admin-heading">product registry</p>
+        </header>
+        <h1 className="admin-section-title">新增商品</h1>
+        <form className="grid gap-4" onSubmit={handleCreateProduct}>
           <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">商品名称</label>
+            <span className="admin-label">商品名称</span>
             <input
               value={newProduct.name}
               onChange={(event) => setNewProduct((prev) => ({ ...prev, name: event.target.value }))}
-              className="rounded-xl border border-primary/20 px-3 py-2"
-              placeholder=""
+              className="admin-input"
+              placeholder="请输入商品名称"
               required
             />
           </div>
           <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">商品描述（可选）</label>
+            <span className="admin-label">商品描述（可选）</span>
             <textarea
               value={newProduct.description}
               onChange={(event) => setNewProduct((prev) => ({ ...prev, description: event.target.value }))}
-              className="rounded-xl border border-primary/20 px-3 py-2"
-              rows={2}
+              className="admin-input min-h-[96px]"
               placeholder=""
             />
           </div>
           <div className="grid gap-2">
-            <label className="text-sm font-medium text-foreground">图片（可选）</label>
+            <span className="admin-label">图片（可选）</span>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               onChange={handleCoverImageChange}
-              className="rounded-xl border border-primary/20 px-3 py-2 file:mr-3 file:rounded-lg file:border-0 file:bg-primary/10 file:px-3 file:py-1 file:text-sm file:text-primary"
+              className="admin-input file:mr-3 file:border-0 file:bg-emerald-500/20 file:px-3 file:py-1 file:text-xs file:uppercase file:tracking-[0.25em] file:text-emerald-200"
             />
             {coverImagePreview ? (
-              <div className="flex items-center gap-3 rounded-2xl border border-primary/10 bg-primary/5 p-3">
-                <div className="h-16 w-16 overflow-hidden rounded-xl border border-primary/20 bg-white">
+              <div className="admin-subpanel flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="h-20 w-20 overflow-hidden border border-emerald-500/40 bg-black/60">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={coverImagePreview} alt="封面预览" className="h-full w-full object-cover" />
                 </div>
-                <div className="flex flex-1 items-center justify-between gap-3">
-                  <div className="flex flex-col text-sm text-foreground">
-                    <span className="font-medium truncate" title={coverImageFile?.name}>
+                <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <p className="admin-text truncate" title={coverImageFile?.name}>
                       {coverImageFile?.name}
-                    </span>
-                    <span className="text-xs text-foreground-light">
+                    </p>
+                    <p className="admin-text-small">
                       {(() => {
                         const sizeInMb = coverImageFile ? coverImageFile.size / (1024 * 1024) : 0;
                         if (sizeInMb === 0) return "0 MB";
                         if (sizeInMb < 0.01) return "<0.01 MB";
                         return `${sizeInMb.toFixed(2)} MB`;
                       })()}
-                    </span>
+                    </p>
                   </div>
-                  <Button type="button" variant="ghost" onClick={resetCoverImage} className="text-sm text-red-500 hover:text-red-600">
+                  <AdminButton tone="ghost" onClick={resetCoverImage} className="admin-button-danger">
                     移除
-                  </Button>
+                  </AdminButton>
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-foreground-light">支持 JPG / PNG / WEBP，大小不超过 5MB。</p>
+              <p className="admin-text-small">支持 JPG / PNG / WEBP，大小不超过 5MB。</p>
             )}
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-foreground">款式</label>
-              <Button type="button" variant="outline" onClick={handleAddVariantField}>
+              <span className="admin-label">款式</span>
+              <AdminButton tone="plain" type="button" onClick={handleAddVariantField}>
                 添加款式
-              </Button>
+              </AdminButton>
             </div>
             <div className="space-y-3">
               {newProduct.variants.map((variant, index) => (
-                <div key={index} className="grid gap-2 rounded-2xl border border-primary/10 bg-primary/5 p-4">
-                  <label className="flex flex-col gap-1 text-sm">
-                    <span className="font-medium text-foreground">款式名称</span>
+                <div key={index} className="admin-subpanel space-y-3">
+                  <div className="grid gap-2">
+                    <span className="admin-label">款式名称</span>
                     <input
                       value={variant.name}
                       onChange={(event) => handleVariantChange(index, "name", event.target.value)}
-                      className="rounded-xl border border-primary/20 px-3 py-2"
-                      placeholder="例如：白色 M码"
+                      className="admin-input"
+                      placeholder="例如：白色 M 码"
                     />
-                  </label>
-                  <div className="grid md:grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium text-foreground">价格（元，可填“待定”）</span>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="grid gap-2">
+                      <span className="admin-label">价格（元，可填“待定”）</span>
                       <input
                         value={variant.price}
                         onChange={(event) => handleVariantChange(index, "price", event.target.value)}
-                        className="rounded-xl border border-primary/20 px-3 py-2"
-                        placeholder=""
+                        className="admin-input"
+                        placeholder="请填写数字或待定"
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-sm">
-                      <span className="font-medium text-foreground">初始库存</span>
+                    <label className="grid gap-2">
+                      <span className="admin-label">初始库存</span>
                       <input
                         type="number"
                         min={0}
                         value={variant.inventory}
                         onChange={(event) => handleVariantChange(index, "inventory", Number(event.target.value))}
-                        className="rounded-xl border border-primary/20 px-3 py-2"
+                        className="admin-input"
                       />
                     </label>
                   </div>
@@ -319,60 +333,59 @@ export default function ProductManager({ products, loading, reload }: Props) {
               ))}
             </div>
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <Button type="submit" disabled={creating} className="w-full">
+          {error && <div className="admin-alert">{error}</div>}
+          <AdminButton type="submit" disabled={creating} className="w-full md:w-auto">
             {creating ? "创建中..." : "创建商品"}
-          </Button>
+          </AdminButton>
         </form>
       </section>
 
-      <section className="space-y-4">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-2xl font-semibold text-foreground">全部商品</h2>
-          <p className="text-sm text-foreground-light">
-            共 {products.length} 件 · 上架 {activeProducts.length} 件 · 下架 {inactiveProducts.length} 件
+      <section className="space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-1">
+            <p className="admin-heading">inventory monitor</p>
+            <h2 className="admin-section-title">全部商品</h2>
+          </div>
+          <p className="admin-muted">
+            total {products.length} · online {activeProducts.length} · offline {inactiveProducts.length}
           </p>
         </div>
         {loading ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
-            正在加载商品...
+          <div className="admin-panel text-center">
+            <p className="admin-text">正在加载商品...</p>
           </div>
         ) : products.length === 0 ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
-            暂无商品，请先新增。
+          <div className="admin-panel text-center">
+            <p className="admin-text">暂无商品，请先新增。</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {activeProducts.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-foreground">已上架</h3>
-                  <span className="text-xs rounded-full bg-primary/10 text-primary px-3 py-1">
-                    共 {activeProducts.length} 件
-                  </span>
+                  <h3 className="admin-section-title text-base tracking-[0.24em]">已上架</h3>
+                  <span className="admin-status-badge">active · {activeProducts.length}</span>
                 </div>
-                <div className="grid gap-4">
+                <div className="admin-table">
                   {activeProducts.map((product) => (
-                    <div key={product.id} className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div>
-                          <h4 className="text-xl font-semibold text-foreground">{product.name}</h4>
-                          {product.description && <p className="text-sm text-foreground-light mt-1">{product.description}</p>}
+                    <div key={product.id} className="admin-panel space-y-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                          <h4 className="admin-section-title text-base tracking-[0.22em]">{product.name}</h4>
+                          {product.description && <p className="admin-text-small">{product.description}</p>}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs rounded-full bg-primary/10 text-primary px-3 py-1">已上架</span>
-                          <Button
-                            type="button"
-                            variant="outline"
+                          <span className="admin-status-badge">online</span>
+                          <AdminButton
+                            tone="danger"
                             onClick={() => handleDeactivateProduct(product.id, product.name)}
                             disabled={deactivatingId === product.id}
-                            className="border-red-200 text-red-500 hover:border-red-400 hover:bg-red-50"
                           >
                             {deactivatingId === product.id ? "下架中..." : "下架"}
-                          </Button>
+                          </AdminButton>
                         </div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="admin-table">
                         {product.variants.map((variant) => (
                           <VariantRow
                             key={variant.id}
@@ -393,35 +406,33 @@ export default function ProductManager({ products, loading, reload }: Props) {
             {inactiveProducts.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-foreground">已下架</h3>
-                  <span className="text-xs rounded-full bg-slate-200 text-slate-600 px-3 py-1">
-                    共 {inactiveProducts.length} 件
-                  </span>
+                  <h3 className="admin-section-title text-base tracking-[0.24em]">已下架</h3>
+                  <span className="admin-status-badge inactive">offline · {inactiveProducts.length}</span>
                 </div>
-                <div className="grid gap-4">
+                <div className="admin-table">
                   {inactiveProducts.map((product) => (
-                    <div key={product.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm space-y-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                        <div>
-                          <h4 className="text-xl font-semibold text-slate-700">{product.name}</h4>
-                          {product.description && <p className="text-sm text-slate-500 mt-1">{product.description}</p>}
+                    <div key={product.id} className="admin-panel space-y-4">
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="space-y-2">
+                          <h4 className="admin-section-title text-base tracking-[0.22em]">{product.name}</h4>
+                          {product.description && <p className="admin-text-small">{product.description}</p>}
                         </div>
                         <div className="flex items-center gap-3">
-                          <span className="text-xs rounded-full bg-slate-300 text-slate-700 px-3 py-1">已下架</span>
-                          <Button
-                            type="button"
-                            variant="outline"
+                          <span className="admin-status-badge inactive">offline</span>
+                          <AdminButton
+                            tone="plain"
                             onClick={() => handleActivateProduct(product.id, product.name)}
                             disabled={activatingId === product.id}
-                            className="border-green-200 text-green-600 hover:border-green-400 hover:bg-green-50"
                           >
                             {activatingId === product.id ? "上架中..." : "重新上架"}
-                          </Button>
+                          </AdminButton>
                         </div>
                       </div>
-                      <div className="space-y-2 text-sm text-slate-500">
-                        <p>款式数量：{product.variants.length}</p>
-                        <p>最近更新：{new Date(product.updatedAt ?? product.createdAt).toLocaleString()}</p>
+                      <div className="admin-kv">
+                        <p className="admin-text-small">款式数量：{product.variants.length}</p>
+                        <p className="admin-text-small">
+                          最近更新：{new Date(product.updatedAt ?? product.createdAt).toLocaleString()}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -448,14 +459,14 @@ function VariantRow({ name, price, inventory, onSave }: VariantRowProps) {
   const priceDisplay = price != null ? `¥${(price / 100).toFixed(2)}` : "价格待定";
   const changed = inventoryInput !== inventory;
   return (
-    <div className="grid md:grid-cols-[1fr_auto_auto] gap-3 items-center rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
-      <div>
-        <p className="font-medium text-primary">{name}</p>
-        <p className="text-xs text-foreground-light mt-1">{priceDisplay}</p>
+    <div className="admin-subpanel grid items-center gap-4 md:grid-cols-[1fr_auto_auto]">
+      <div className="space-y-1">
+        <p className="admin-text font-semibold">{name}</p>
+        <p className="admin-text-small">{priceDisplay}</p>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-sm text-foreground-light">当前库存：</span>
-        <span className="text-base font-semibold text-primary">{inventory} 件</span>
+        <span className="admin-text-small">当前库存</span>
+        <span className="admin-text">{inventory} 件</span>
       </div>
       <div className="flex items-center gap-2">
         <input
@@ -463,11 +474,11 @@ function VariantRow({ name, price, inventory, onSave }: VariantRowProps) {
           min={0}
           value={inventoryInput}
           onChange={(event) => setInventoryInput(Number(event.target.value))}
-          className="w-24 rounded-xl border border-primary/20 px-3 py-2"
+          className="admin-input w-24"
         />
-        <Button type="button" variant="outline" onClick={() => onSave(inventoryInput)} disabled={!changed}>
+        <AdminButton tone="plain" onClick={() => onSave(inventoryInput)} disabled={!changed}>
           保存
-        </Button>
+        </AdminButton>
       </div>
     </div>
   );

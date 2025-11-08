@@ -47,3 +47,260 @@ html {
   }
 }
 
+.admin-root {
+  font-family: "JetBrains Mono", "Fira Code", "Fira Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: #a7f3d0;
+  background-color: #010405;
+}
+
+.admin-root * {
+  border-radius: 0 !important;
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, transform 120ms ease;
+}
+
+.admin-grid-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(90deg, rgba(16, 185, 129, 0.12) 1px, transparent 1px),
+    linear-gradient(rgba(16, 185, 129, 0.12) 1px, transparent 1px);
+  background-size: 42px 42px;
+}
+
+.admin-scanline-overlay {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  opacity: 0.2;
+  mix-blend-mode: screen;
+  background-image: linear-gradient(transparent 0%, rgba(16, 185, 129, 0.35) 2%, transparent 4%);
+  background-size: 100% 6px;
+}
+
+.admin-shell {
+  border: 2px solid rgba(16, 185, 129, 0.6);
+  background-color: rgba(0, 0, 0, 0.78);
+  padding: clamp(1.75rem, 2vw + 1.25rem, 3rem);
+  box-shadow: 0 0 42px rgba(16, 185, 129, 0.32);
+}
+
+.admin-panel {
+  border: 1px solid rgba(16, 185, 129, 0.55);
+  background: linear-gradient(155deg, rgba(1, 12, 8, 0.92), rgba(0, 0, 0, 0.78));
+  padding: 1.75rem;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.14), 0 0 28px rgba(16, 185, 129, 0.16);
+}
+
+.admin-panel + .admin-panel {
+  margin-top: 1.75rem;
+}
+
+.admin-subpanel {
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  background: rgba(4, 34, 24, 0.6);
+  padding: 1rem 1.25rem;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.18);
+}
+
+.admin-title {
+  margin: 0;
+  font-size: clamp(1.8rem, 2vw + 1.3rem, 2.4rem);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(167, 243, 208, 0.96);
+}
+
+.admin-heading {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(110, 231, 183, 0.88);
+}
+
+.admin-muted {
+  font-size: 0.75rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(45, 212, 191, 0.68);
+}
+
+.admin-metric {
+  color: rgba(16, 185, 129, 0.88);
+  font-weight: 600;
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(13, 98, 84, 0.32);
+  color: rgba(167, 243, 208, 0.95);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.68rem;
+}
+
+.admin-alert {
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  background: rgba(40, 4, 4, 0.8);
+  color: #fca5a5;
+  padding: 0.85rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.admin-root input,
+.admin-root select,
+.admin-root textarea {
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  background: rgba(0, 0, 0, 0.72);
+  color: rgba(209, 250, 229, 0.92);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.admin-root input:focus,
+.admin-root select:focus,
+.admin-root textarea:focus {
+  outline: none;
+  border-color: rgba(52, 211, 153, 0.85);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.35);
+}
+
+.admin-root ::placeholder {
+  color: rgba(12, 74, 57, 0.9);
+}
+
+.admin-divider {
+  border-top: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.admin-root .text-foreground,
+.admin-root .text-slate-900,
+.admin-root .text-gray-900 {
+  color: rgba(209, 250, 229, 0.92) !important;
+}
+
+.admin-root .text-foreground-light,
+.admin-root .text-slate-600,
+.admin-root .text-slate-500,
+.admin-root .text-gray-600,
+.admin-root .text-gray-500 {
+  color: rgba(94, 234, 212, 0.78) !important;
+}
+
+.admin-root .text-primary,
+.admin-root .text-emerald-500 {
+  color: rgba(16, 185, 129, 0.95) !important;
+}
+
+.admin-root .text-primary\/80,
+.admin-root .text-primary\/60,
+.admin-root .text-primary\/40 {
+  color: rgba(16, 185, 129, 0.8) !important;
+}
+
+.admin-root .bg-white,
+.admin-root .bg-white\/5,
+.admin-root .bg-white\/10,
+.admin-root .bg-white\/60,
+.admin-root .bg-gray-50,
+.admin-root .bg-slate-50,
+.admin-root .bg-primary\/5,
+.admin-root .bg-primary\/10,
+.admin-root .bg-gray-100 {
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  color: rgba(209, 250, 229, 0.9) !important;
+}
+
+.admin-root .border-primary\/10,
+.admin-root .border-primary\/20,
+.admin-root .border-primary\/40,
+.admin-root .border-gray-200,
+.admin-root .border-slate-200 {
+  border-color: rgba(16, 185, 129, 0.45) !important;
+}
+
+.admin-root .bg-slate-200,
+.admin-root .bg-slate-300,
+.admin-root .bg-primary,
+.admin-root .bg-gray-200 {
+  background-color: rgba(30, 64, 54, 0.7) !important;
+  color: rgba(167, 243, 208, 0.95) !important;
+}
+
+.admin-button-danger {
+  border-color: rgba(248, 113, 113, 0.6) !important;
+  color: rgba(248, 113, 113, 0.8) !important;
+}
+
+.admin-button-danger:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.85) !important;
+  color: #020202 !important;
+}
+
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.3rem 0.75rem;
+  background: rgba(16, 185, 129, 0.12);
+  color: rgba(167, 243, 208, 0.92);
+}
+
+.admin-status-badge.inactive {
+  border-color: rgba(148, 163, 184, 0.35);
+  background: rgba(30, 41, 59, 0.35);
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.admin-table {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-table-section {
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  padding: 1rem 1.25rem;
+  background: rgba(2, 27, 20, 0.55);
+}
+
+.admin-kv {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-kv dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(45, 212, 191, 0.7);
+}
+
+.admin-kv dd {
+  font-size: 0.9rem;
+  color: rgba(209, 250, 229, 0.92);
+}
+
+.admin-pulse {
+  animation: adminPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes adminPulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+

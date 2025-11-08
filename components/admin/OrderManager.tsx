@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AdminOrder } from "./AdminDashboard";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 
 const PAYMENT_STATUS_OPTIONS = [
   { value: "pending", label: "待核验" },
@@ -58,95 +58,83 @@ export default function OrderManager({ orders, loading, reload, page, pageSize, 
   };
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm">
-        <h2 className="text-2xl font-semibold text-foreground">订单列表</h2>
-        <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="text-sm text-foreground-light">
-            共 {total} 条记录，当前第 {page}/{totalPages} 页
+    <div className="space-y-5">
+      <div className="admin-panel space-y-4">
+        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-1">
+            <p className="admin-heading">order console</p>
+            <h2 className="admin-section-title">订单列表</h2>
+          </div>
+          <div className="admin-muted">
+            total {total} · page {page}/{totalPages}
             {total > 0 && (
-              <span className="ml-2">
-                本页显示 {startIndex} - {endIndex}
+              <span className="ml-4">
+                window {startIndex} - {endIndex}
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onPageChange(Math.max(1, page - 1))}
-              disabled={loading || page <= 1}
-            >
-              上一页
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-              disabled={loading || page >= totalPages}
-            >
-              下一页
-            </Button>
-            <Button type="button" onClick={() => reload()} disabled={loading}>
-              刷新当前页
-            </Button>
-          </div>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <AdminButton tone="plain" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={loading || page <= 1}>
+            上一页
+          </AdminButton>
+          <AdminButton
+            tone="plain"
+            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
+            disabled={loading || page >= totalPages}
+          >
+            下一页
+          </AdminButton>
+          <AdminButton tone="plain" onClick={() => reload()} disabled={loading}>
+            刷新当前页
+          </AdminButton>
         </div>
       </div>
 
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+      {error && <div className="admin-alert">{error}</div>}
 
       {loading ? (
-        <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
-          正在加载订单...
+        <div className="admin-panel text-center">
+          <p className="admin-text">正在加载订单...</p>
         </div>
       ) : orders.length === 0 ? (
-        <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
-          暂无订单记录。
+        <div className="admin-panel text-center">
+          <p className="admin-text">暂无订单记录。</p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {orders.map((order) => (
-            <div
-              key={order.id}
-              className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4"
-            >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                  <p className="text-sm text-foreground-light">订单号</p>
-                  <p className="text-xl font-semibold font-mono text-primary">{order.orderCode}</p>
-                  <p className="text-xs text-foreground-light mt-1">
+            <div key={order.id} className="admin-panel space-y-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="space-y-1">
+                  <p className="admin-text-small">订单号</p>
+                  <p className="font-mono text-lg text-emerald-200 tracking-[0.25em]">{order.orderCode}</p>
+                  <p className="admin-text-small">
                     {order.nickname} · {order.phone} · {order.deliveryMethod === "pickup" ? "自提" : "快递"}
                   </p>
                 </div>
-                <div className="text-sm text-foreground-light">
-                  下单时间：{new Date(order.createdAt).toLocaleString()}
-                </div>
+                <div className="admin-text-small">下单时间：{new Date(order.createdAt).toLocaleString()}</div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">商品明细</p>
-                  <ul className="space-y-1 text-sm text-foreground-light">
+                  <p className="admin-heading">商品明细</p>
+                  <ul className="space-y-1">
                     {order.items.map((item) => (
-                      <li key={item.id}>
-                        {item.variant.product.name} - {item.variant.name} × {item.quantity}
+                      <li key={item.id} className="admin-text-small normal-case tracking-normal text-emerald-200/80">
+                        {item.variant.product.name} · {item.variant.name} × {item.quantity}
                         {item.unitPrice != null ? `（¥${(item.unitPrice / 100).toFixed(2)}）` : ""}
                       </li>
                     ))}
                   </ul>
-                  {order.note && (
-                    <p className="text-xs text-primary/80 bg-primary/5 border border-primary/10 rounded-xl px-3 py-2">
-                      备注：{order.note}
-                    </p>
-                  )}
+                  {order.note && <div className="admin-subpanel admin-text-small">备注：{order.note}</div>}
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-foreground">支付状态</label>
+                  <div className="grid gap-2">
+                    <span className="admin-label">支付状态</span>
                     <select
-                      className="rounded-xl border border-primary/20 px-3 py-2 text-sm"
+                      className="admin-input"
                       value={order.paymentStatus}
                       onChange={(event) => handleUpdate(order.id, { paymentStatus: event.target.value })}
                       disabled={updatingId === order.id}
@@ -158,10 +146,10 @@ export default function OrderManager({ orders, loading, reload, page, pageSize, 
                       ))}
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-foreground">发货状态</label>
+                  <div className="grid gap-2">
+                    <span className="admin-label">发货状态</span>
                     <select
-                      className="rounded-xl border border-primary/20 px-3 py-2 text-sm"
+                      className="admin-input"
                       value={order.fulfillmentStatus}
                       onChange={(event) => handleUpdate(order.id, { fulfillmentStatus: event.target.value })}
                       disabled={updatingId === order.id}
@@ -177,8 +165,8 @@ export default function OrderManager({ orders, loading, reload, page, pageSize, 
               </div>
 
               {order.deliveryMethod === "delivery" && (
-                <div className="rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3 text-sm text-foreground">
-                  <p className="font-medium">快递信息</p>
+                <div className="admin-subpanel space-y-1 admin-text-small">
+                  <p className="admin-heading">快递信息</p>
                   <p>收件人：{order.deliveryName ?? "-"}，电话：{order.deliveryPhone ?? "-"}</p>
                   <p>地址：{order.deliveryAddress ?? "-"}</p>
                 </div>

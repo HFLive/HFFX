@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 import ProductManager from "@/components/admin/ProductManager";
 import OrderManager from "@/components/admin/OrderManager";
 import SurveyManager from "@/components/admin/SurveyManager";
@@ -391,34 +391,33 @@ export default function AdminDashboard() {
   }, [products]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">后台管理</h1>
-          <p className="text-sm text-foreground-light mt-1">
-            当前库存总计 {totalInventory} 件
+    <div className="space-y-10">
+      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-3">
+          <p className="admin-heading">hf control center</p>
+          <h1 className="admin-title">admin console</h1>
+          <p className="admin-muted">
+            inventory checksum:
+            <span className="ml-2 admin-metric">{totalInventory}</span>
+            <span className="ml-4">records synced</span>
           </p>
         </div>
-        <Button variant="outline" onClick={handleLogout}>
-          退出登录
-        </Button>
+        <AdminButton tone="danger" onClick={handleLogout}>
+          terminate session
+        </AdminButton>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full md:w-auto">
-          <TabsTrigger value="products">商品与库存</TabsTrigger>
-          <TabsTrigger value="orders">订单</TabsTrigger>
-          <TabsTrigger value="surveys">问卷</TabsTrigger>
-          <TabsTrigger value="timeline">时间线</TabsTrigger>
-          <TabsTrigger value="danmaku">弹幕</TabsTrigger>
-          <TabsTrigger value="settings">设置</TabsTrigger>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="w-full flex-wrap md:w-auto">
+          <TabsTrigger value="products">products</TabsTrigger>
+          <TabsTrigger value="orders">orders</TabsTrigger>
+          <TabsTrigger value="surveys">surveys</TabsTrigger>
+          <TabsTrigger value="timeline">timeline</TabsTrigger>
+          <TabsTrigger value="danmaku">danmaku</TabsTrigger>
+          <TabsTrigger value="settings">settings</TabsTrigger>
         </TabsList>
 
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-            {error}
-          </div>
-        )}
+        {error && <div className="admin-alert mt-6">{error}</div>}
 
         <TabsContent value="products">
           <ProductManager products={products} loading={productsLoading} reload={loadProducts} />

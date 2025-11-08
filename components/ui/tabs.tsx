@@ -13,13 +13,22 @@ const TabsContext = createContext<TabsContextValue | null>(null);
 export function Tabs({ value, onValueChange, children, className }: { value: string; onValueChange: (value: string) => void; children: ReactNode; className?: string }) {
   return (
     <TabsContext.Provider value={{ value, onValueChange }}>
-      <div className={cn("space-y-4", className)}>{children}</div>
+      <div className={cn("space-y-6", className)}>{children}</div>
     </TabsContext.Provider>
   );
 }
 
 export function TabsList({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("inline-flex rounded-2xl border border-primary/10 bg-white p-1 shadow-sm", className)}>{children}</div>;
+  return (
+    <div
+      className={cn(
+        "inline-flex border border-emerald-500/60 bg-black/60 p-1.5 uppercase tracking-[0.3em] text-xs text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.2)]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function TabsTrigger({ value, children, className }: { value: string; children: ReactNode; className?: string }) {
@@ -31,9 +40,12 @@ export function TabsTrigger({ value, children, className }: { value: string; chi
       type="button"
       onClick={() => context.onValueChange(value)}
       className={cn(
-        "px-4 py-2 rounded-xl text-sm font-medium transition",
-        active ? "bg-primary text-white shadow" : "text-foreground hover:bg-primary/10"
-      , className)}
+        "px-5 py-3 text-xs md:text-sm uppercase tracking-[0.3em] transition-colors duration-150",
+        active
+          ? "bg-emerald-500 text-black shadow-[0_0_25px_rgba(16,185,129,0.35)]"
+          : "text-emerald-300 hover:bg-emerald-500/15",
+        className
+      )}
     >
       {children}
     </button>

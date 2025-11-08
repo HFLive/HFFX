@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/AdminButton";
 import type { AdminSurvey } from "@/components/admin/AdminDashboard";
 
 const initialNewSurvey = {
@@ -219,7 +219,7 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4">
+      <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-foreground">新增问卷</h2>
           <span className="text-sm text-foreground-light">当前共 {totalCount} 份问卷</span>
@@ -280,20 +280,20 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
           {success && <p className="text-sm text-green-600">{success}</p>}
-          <Button type="submit" disabled={creating} className="w-full">
+          <AdminButton type="submit" disabled={creating} className="w-full md:w-auto">
             {creating ? "创建中..." : "创建问卷"}
-          </Button>
+          </AdminButton>
         </form>
       </section>
 
       <section className="space-y-4">
         <h2 className="text-2xl font-semibold text-foreground">问卷列表</h2>
         {loading ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
+          <div className="admin-panel text-center">
             正在加载问卷...
           </div>
         ) : surveys.length === 0 ? (
-          <div className="rounded-3xl border border-primary/10 bg-white p-6 text-center text-foreground-light">
+          <div className="admin-panel text-center">
             暂无问卷，请先新增。
           </div>
         ) : (
@@ -303,10 +303,7 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
               const isProcessing =
                 savingSlug === item.originalSlug || deletingSlug === item.originalSlug;
               return (
-                <div
-                  key={item.originalSlug}
-                  className="rounded-3xl border border-primary/10 bg-white p-6 shadow-sm space-y-4"
-                >
+                <div key={item.originalSlug} className="admin-panel space-y-4">
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-foreground">{item.title || item.slug}</h3>
@@ -318,23 +315,22 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
+                      <AdminButton
                         type="button"
-                        variant="outline"
+                        tone="plain"
                         onClick={() => handleSaveSurvey(index)}
                         disabled={isProcessing}
                       >
                         {savingSlug === item.originalSlug ? "保存中..." : "保存"}
-                      </Button>
-                      <Button
+                      </AdminButton>
+                      <AdminButton
                         type="button"
-                        variant="ghost"
+                        tone="danger"
                         onClick={() => handleDeleteSurvey(item.originalSlug, item.title || item.slug)}
                         disabled={isProcessing}
-                        className="text-red-500 hover:text-red-600"
                       >
                         {deletingSlug === item.originalSlug ? "删除中..." : "删除"}
-                      </Button>
+                      </AdminButton>
                     </div>
                   </div>
 
