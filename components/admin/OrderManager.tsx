@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminOrder } from "./AdminDashboard";
 import { AdminButton } from "@/components/admin/AdminButton";
 
@@ -26,15 +27,60 @@ type Props = {
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
+  searchQuery: string;
+  paymentStatusFilter: string;
+  fulfillmentStatusFilter: string;
+  deliveryMethodFilter: string;
+  onSearch: (search: string, paymentStatus: string, fulfillmentStatus: string, deliveryMethod: string) => void;
 };
 
-export default function OrderManager({ orders, loading, reload, page, pageSize, total, onPageChange }: Props) {
+export default function OrderManager({
+  orders,
+  loading,
+  reload,
+  page,
+  pageSize,
+  total,
+  onPageChange,
+  searchQuery,
+  paymentStatusFilter,
+  fulfillmentStatusFilter,
+  deliveryMethodFilter,
+  onSearch
+}: Props) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessages, setToastMessages] = useState<{ id: string; text: string }[]>([]);
+  const [mounted, setMounted] = useState(false);
+  const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [localPaymentStatus, setLocalPaymentStatus] = useState(paymentStatusFilter);
+  const [localFulfillmentStatus, setLocalFulfillmentStatus] = useState(fulfillmentStatusFilter);
+  const [localDeliveryMethod, setLocalDeliveryMethod] = useState(deliveryMethodFilter);
+
+  // 当 props 改变时同步本地状态
+  useEffect(() => {
+    setLocalSearch(searchQuery);
+    setLocalPaymentStatus(paymentStatusFilter);
+    setLocalFulfillmentStatus(fulfillmentStatusFilter);
+    setLocalDeliveryMethod(deliveryMethodFilter);
+  }, [searchQuery, paymentStatusFilter, fulfillmentStatusFilter, deliveryMethodFilter]);
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const startIndex = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const endIndex = total === 0 ? 0 : (page - 1) * pageSize + orders.length;
+
+  const showToast = (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToastMessages((prev) => [...prev, { id, text: message }]);
+    setTimeout(() => {
+      setToastMessages((prev) => prev.filter((toast) => toast.id !== id));
+    }, 2800);
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleUpdate = async (orderId: string, updates: { paymentStatus?: string; fulfillmentStatus?: string }) => {
     setUpdatingId(orderId);
@@ -49,6 +95,7 @@ export default function OrderManager({ orders, loading, reload, page, pageSize, 
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "更新失败");
       }
+      showToast("订单状态已更新");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "更新失败，请稍后再试");
@@ -59,6 +106,122 @@ export default function OrderManager({ orders, loading, reload, page, pageSize, 
 
   return (
     <div className="space-y-5">
+      {/* 搜索表单 */}
+      <section className="admin-panel space-y-4">
+        <h2 className="admin-section-title">搜索订单</h2>
+        <form
+          className="grid gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSearch(localSearch, localPaymentStatus, localFulfillmentStatus, localDeliveryMethod);
+          }}
+        >
+          <div className="grid gap-2">
+            <span className="admin-label">关键词搜索</span>
+            <input
+              name="search"
+              type="text"
+              placeholder="订单号、昵称或电话"
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="admin-input"
+            />
+            <span className="admin-muted">支持在订单号、昵称和电话中搜索</span>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <label className="grid gap-2">
+              <span className="admin-label">支付状态</span>
+              <select
+                name="paymentStatus"
+                value={localPaymentStatus}
+                onChange={(e) => setLocalPaymentStatus(e.target.value)}
+                className="admin-select"
+              >
+                <option value="">全部</option>
+                {PAYMENT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="admin-label">发货状态</span>
+              <select
+                name="fulfillmentStatus"
+                value={localFulfillmentStatus}
+                onChange={(e) => setLocalFulfillmentStatus(e.target.value)}
+                className="admin-select"
+              >
+                <option value="">全部</option>
+                {FULFILLMENT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="admin-label">配送方式</span>
+              <select
+                name="deliveryMethod"
+                value={localDeliveryMethod}
+                onChange={(e) => setLocalDeliveryMethod(e.target.value)}
+                className="admin-select"
+              >
+                <option value="">全部</option>
+                <option value="pickup">自提</option>
+                <option value="delivery">快递</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <AdminButton type="submit" disabled={loading}>
+              {loading ? "搜索中..." : "搜索"}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              tone="plain"
+              onClick={() => {
+                setLocalSearch("");
+                setLocalPaymentStatus("");
+                setLocalFulfillmentStatus("");
+                setLocalDeliveryMethod("");
+                onSearch("", "", "", "");
+              }}
+              disabled={loading}
+            >
+              清除搜索
+            </AdminButton>
+          </div>
+        </form>
+      </section>
+
+      {mounted && toastMessages.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[1000]">
+            {toastMessages.map((toast, index) => (
+              <div
+                key={toast.id}
+                className="bg-emerald-500/15 border border-emerald-400/70 text-emerald-200 uppercase tracking-[0.28em] text-xs px-4 py-2 shadow-[0_0_24px_rgba(16,185,129,0.35)] rounded-none"
+                style={{
+                  position: "absolute",
+                  bottom: `${index * 60}px`,
+                  right: 0,
+                  whiteSpace: "nowrap",
+                  maxWidth: "300px",
+                }}
+              >
+                {toast.text}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
       <div className="admin-panel space-y-4">
         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">

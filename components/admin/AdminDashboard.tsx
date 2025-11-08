@@ -9,6 +9,7 @@ import SurveyManager from "@/components/admin/SurveyManager";
 import DanmakuManager from "@/components/admin/DanmakuManager";
 import TimelineManager from "@/components/admin/TimelineManager";
 import SettingsManager from "@/components/admin/SettingsManager";
+import BombManager from "@/components/admin/BombManager";
 
 export type AdminProduct = {
   id: string;
@@ -107,11 +108,18 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("products");
   const [orderPage, setOrderPage] = useState(1);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderPaymentStatus, setOrderPaymentStatus] = useState("");
+  const [orderFulfillmentStatus, setOrderFulfillmentStatus] = useState("");
+  const [orderDeliveryMethod, setOrderDeliveryMethod] = useState("");
 
   const ORDER_PAGE_SIZE = 20;
 
-  const loadProducts = async () => {
-    setProductsLoading(true);
+  const loadProducts = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setProductsLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/products");
@@ -128,15 +136,52 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setProductsLoading(false);
+      if (!silent) {
+        setProductsLoading(false);
+      }
     }
   };
 
-  const loadOrders = async (page = orderPage) => {
-    setOrdersLoading(true);
+  const loadOrders = async (
+    pageParam = orderPage,
+    options?: {
+      silent?: boolean;
+      search?: string;
+      paymentStatus?: string;
+      fulfillmentStatus?: string;
+      deliveryMethod?: string;
+    }
+  ) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setOrdersLoading(true);
+    }
     setError(null);
     try {
-      const response = await fetch(`/api/admin/orders?page=${page}&pageSize=${ORDER_PAGE_SIZE}`);
+      const params = new URLSearchParams({
+        page: pageParam.toString(),
+        pageSize: ORDER_PAGE_SIZE.toString(),
+      });
+
+      const search = options?.search ?? orderSearch;
+      const paymentStatus = options?.paymentStatus ?? orderPaymentStatus;
+      const fulfillmentStatus = options?.fulfillmentStatus ?? orderFulfillmentStatus;
+      const deliveryMethod = options?.deliveryMethod ?? orderDeliveryMethod;
+
+      if (search.trim()) {
+        params.set("q", search.trim());
+      }
+      if (paymentStatus) {
+        params.set("paymentStatus", paymentStatus);
+      }
+      if (fulfillmentStatus) {
+        params.set("fulfillmentStatus", fulfillmentStatus);
+      }
+      if (deliveryMethod) {
+        params.set("deliveryMethod", deliveryMethod);
+      }
+
+      const response = await fetch(`/api/admin/orders?${params.toString()}`);
       if (response.status === 401) {
         window.location.href = "/admin/login";
         return;
@@ -151,12 +196,33 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setOrdersLoading(false);
+      if (!silent) {
+        setOrdersLoading(false);
+      }
     }
   };
 
-  const loadSurveys = async () => {
-    setSurveysLoading(true);
+  const handleOrderSearch = (search: string, paymentStatus: string, fulfillmentStatus: string, deliveryMethod: string) => {
+    setOrderSearch(search);
+    setOrderPaymentStatus(paymentStatus);
+    setOrderFulfillmentStatus(fulfillmentStatus);
+    setOrderDeliveryMethod(deliveryMethod);
+    setOrderPage(1); // 搜索时重置到第一页
+    // 直接传递搜索参数，避免依赖异步状态更新
+    loadOrders(1, {
+      silent: true,
+      search,
+      paymentStatus,
+      fulfillmentStatus,
+      deliveryMethod,
+    });
+  };
+
+  const loadSurveys = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setSurveysLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/surveys");
@@ -173,12 +239,17 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setSurveysLoading(false);
+      if (!silent) {
+        setSurveysLoading(false);
+      }
     }
   };
 
-  const loadDanmaku = async () => {
-    setDanmakuLoading(true);
+  const loadDanmaku = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setDanmakuLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/danmaku");
@@ -195,12 +266,17 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setDanmakuLoading(false);
+      if (!silent) {
+        setDanmakuLoading(false);
+      }
     }
   };
 
-  const loadTimeline = async () => {
-    setTimelineLoading(true);
+  const loadTimeline = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setTimelineLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/timeline");
@@ -220,12 +296,17 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setTimelineLoading(false);
+      if (!silent) {
+        setTimelineLoading(false);
+      }
     }
   };
 
-  const loadCountdown = async () => {
-    setCountdownLoading(true);
+  const loadCountdown = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setCountdownLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/settings/countdown");
@@ -242,12 +323,17 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setCountdownLoading(false);
+      if (!silent) {
+        setCountdownLoading(false);
+      }
     }
   };
 
-  const loadPaymentQr = async () => {
-    setPaymentQrLoading(true);
+  const loadPaymentQr = async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) {
+      setPaymentQrLoading(true);
+    }
     setError(null);
     try {
       const response = await fetch("/api/admin/settings/payment-qr");
@@ -264,7 +350,9 @@ export default function AdminDashboard() {
     } catch (err: any) {
       setError(err.message ?? "加载失败，请稍后再试");
     } finally {
-      setPaymentQrLoading(false);
+      if (!silent) {
+        setPaymentQrLoading(false);
+      }
     }
   };
 
@@ -394,7 +482,7 @@ export default function AdminDashboard() {
     <div className="space-y-10">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
-          <p className="admin-heading">hf control center</p>
+          <p className="admin-heading">hffx control center</p>
           <h1 className="admin-title">admin console</h1>
           <p className="admin-muted">
             inventory checksum:
@@ -414,40 +502,66 @@ export default function AdminDashboard() {
           <TabsTrigger value="surveys">surveys</TabsTrigger>
           <TabsTrigger value="timeline">timeline</TabsTrigger>
           <TabsTrigger value="danmaku">danmaku</TabsTrigger>
+          <TabsTrigger value="bomb">bomb</TabsTrigger>
           <TabsTrigger value="settings">settings</TabsTrigger>
         </TabsList>
 
         {error && <div className="admin-alert mt-6">{error}</div>}
 
         <TabsContent value="products">
-          <ProductManager products={products} loading={productsLoading} reload={loadProducts} />
+          <ProductManager
+            products={products}
+            loading={productsLoading}
+            reload={() => loadProducts({ silent: true })}
+          />
         </TabsContent>
 
         <TabsContent value="orders">
           <OrderManager
             orders={ordersData?.orders ?? []}
             loading={ordersLoading}
-            reload={() => loadOrders(orderPage)}
+            reload={() => loadOrders(orderPage, { silent: true })}
             page={ordersData?.page ?? orderPage}
             pageSize={ordersData?.pageSize ?? ORDER_PAGE_SIZE}
             total={ordersData?.total ?? 0}
             onPageChange={(page) => {
               setOrderPage(page);
-              loadOrders(page);
+              loadOrders(page, { silent: true });
             }}
+            searchQuery={orderSearch}
+            paymentStatusFilter={orderPaymentStatus}
+            fulfillmentStatusFilter={orderFulfillmentStatus}
+            deliveryMethodFilter={orderDeliveryMethod}
+            onSearch={handleOrderSearch}
           />
         </TabsContent>
 
         <TabsContent value="surveys">
-          <SurveyManager surveys={surveys} loading={surveysLoading} reload={loadSurveys} />
+          <SurveyManager
+            surveys={surveys}
+            loading={surveysLoading}
+            reload={() => loadSurveys({ silent: true })}
+          />
         </TabsContent>
 
         <TabsContent value="timeline">
-          <TimelineManager timeline={timeline} loading={timelineLoading} reload={loadTimeline} />
+          <TimelineManager
+            timeline={timeline}
+            loading={timelineLoading}
+            reload={() => loadTimeline({ silent: true })}
+          />
         </TabsContent>
 
         <TabsContent value="danmaku">
-          <DanmakuManager danmaku={danmaku} loading={danmakuLoading} reload={loadDanmaku} />
+          <DanmakuManager
+            danmaku={danmaku}
+            loading={danmakuLoading}
+            reload={() => loadDanmaku({ silent: true })}
+          />
+        </TabsContent>
+
+        <TabsContent value="bomb">
+          <BombManager countdownTarget={countdownTarget} />
         </TabsContent>
 
         <TabsContent value="settings">

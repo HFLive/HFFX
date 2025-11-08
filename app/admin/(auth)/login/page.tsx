@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
@@ -8,6 +8,28 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("/api/admin/check");
+        if (response.ok) {
+          const data = (await response.json()) as { isAdmin: boolean };
+          if (data.isAdmin) {
+            router.replace("/admin");
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Failed to check auth:", error);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -52,15 +74,27 @@ export default function AdminLoginPage() {
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-16">
         <div className="w-full max-w-md border-2 border-emerald-500 bg-black/80 p-8 shadow-[0_0_40px_rgba(16,185,129,0.35)]">
-          <div className="mb-8 space-y-3 text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.4em] text-emerald-600">system override</p>
-            <h1 className="text-3xl font-mono uppercase tracking-[0.35em] text-emerald-300">
-              admin access
-            </h1>
-            <p className="font-mono text-xs text-emerald-500">
-              {"> 输入认证密钥以解除安全防护"}
-            </p>
-          </div>
+          {checking ? (
+            <div className="space-y-3 text-center">
+              <p className="font-mono text-xs uppercase tracking-[0.4em] text-emerald-600">system override</p>
+              <h1 className="text-3xl font-mono uppercase tracking-[0.35em] text-emerald-300">
+                checking...
+              </h1>
+              <p className="font-mono text-xs text-emerald-500">
+                {"> 验证身份中..."}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-8 space-y-3 text-center">
+                <p className="font-mono text-xs uppercase tracking-[0.4em] text-emerald-600">system override</p>
+                <h1 className="text-3xl font-mono uppercase tracking-[0.35em] text-emerald-300">
+                  admin access
+                </h1>
+                <p className="font-mono text-xs text-emerald-500">
+                  {"> 输入认证密钥以解除安全防护"}
+                </p>
+              </div>
 
           <form className="space-y-6 font-mono" onSubmit={handleSubmit}>
             <label className="flex flex-col gap-2 text-left">
@@ -90,10 +124,12 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 space-y-2 border-t border-emerald-900 pt-4 text-xs text-emerald-600">
-            <p className="font-mono">status: {loading ? "establishing secure channel" : "standby"}</p>
-            <p className="font-mono">protocol: hf-admin-net v2.5</p>
-          </div>
+              <div className="mt-8 space-y-2 border-t border-emerald-900 pt-4 text-xs text-emerald-600">
+                <p className="font-mono">status: {loading ? "establishing secure channel" : "standby"}</p>
+                <p className="font-mono">protocol: hf-admin-net v2.5</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

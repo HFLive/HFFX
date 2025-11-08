@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminButton } from "@/components/admin/AdminButton";
 import type { AdminSurvey } from "@/components/admin/AdminDashboard";
 
@@ -28,37 +29,61 @@ type Props = {
 };
 
 export default function SurveyManager({ surveys, loading, reload }: Props) {
+  const [toastMessages, setToastMessages] = useState<{ id: string; text: string }[]>([]);
   const [newSurvey, setNewSurvey] = useState(initialNewSurvey);
   const [editableSurveys, setEditableSurveys] = useState<EditableSurvey[]>([]);
   const [creating, setCreating] = useState(false);
   const [savingSlug, setSavingSlug] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const originalSurveysRef = useRef<Record<string, EditableSurvey>>({});
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setEditableSurveys(
-      surveys.map((item) => ({
-        originalSlug: item.slug,
-        slug: item.slug,
-        title: item.title,
-        description: item.description ?? "",
-        url: item.url ?? "",
-        embedHtml: item.embedHtml ?? "",
-      }))
-    );
+    const mapped = surveys.map((item) => ({
+      originalSlug: item.slug,
+      slug: item.slug,
+      title: item.title,
+      description: item.description ?? "",
+      url: item.url ?? "",
+      embedHtml: item.embedHtml ?? "",
+    }));
+    originalSurveysRef.current = mapped.reduce<Record<string, EditableSurvey>>((acc, survey) => {
+      acc[survey.originalSlug] = { ...survey };
+      return acc;
+    }, {});
+    setEditableSurveys(mapped);
   }, [surveys]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const totalCount = useMemo(() => surveys.length, [surveys]);
 
-  const updateStatus = (message: string | null, type: "error" | "success") => {
-    if (type === "error") {
-      setError(message);
-      setSuccess(null);
-    } else {
-      setSuccess(message);
-      setError(null);
-    }
+  const resetStatus = () => {
+    setError(null);
+  };
+
+  const showToast = (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToastMessages((prev) => [...prev, { id, text: message }]);
+    setTimeout(() => {
+      setToastMessages((prev) => prev.filter((item) => item.id !== id));
+    }, 2800);
+  };
+
+  const isSurveyDirty = (survey: EditableSurvey) => {
+    const original = originalSurveysRef.current[survey.originalSlug];
+    if (!original) return true;
+    return (
+      survey.slug !== original.slug ||
+      survey.title !== original.title ||
+      survey.description !== original.description ||
+      survey.url !== original.url ||
+      survey.embedHtml !== original.embedHtml
+    );
   };
 
   const handleNewSurveyChange = (field: keyof typeof initialNewSurvey, value: string) => {
@@ -95,7 +120,7 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
 
   const handleCreateSurvey = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    updateStatus(null, "success");
+    resetStatus();
 
     const payload = {
       slug: newSurvey.slug.trim().toLowerCase(),
@@ -107,11 +132,11 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
 
     const validationMessage = validateSurvey(payload);
     if (validationMessage) {
-      updateStatus(validationMessage, "error");
+      setError(validationMessage);
       return;
     }
     if (surveys.some((item) => item.slug === payload.slug)) {
-      updateStatus("slug 已存在，请更换", "error");
+      setError("slug 已存在，请更换");
       return;
     }
 
@@ -132,18 +157,18 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "创建失败");
       }
-      updateStatus("已创建问卷", "success");
+      showToast("已创建问卷");
       setNewSurvey(initialNewSurvey);
       await reload();
     } catch (err: any) {
-      updateStatus(err.message ?? "创建失败，请稍后再试", "error");
+      setError(err.message ?? "创建失败，请稍后再试");
     } finally {
       setCreating(false);
     }
   };
 
   const handleSaveSurvey = async (index: number) => {
-    updateStatus(null, "success");
+    resetStatus();
     const item = editableSurveys[index];
     if (!item) return;
 
@@ -157,14 +182,14 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
 
     const validationMessage = validateSurvey(payload);
     if (validationMessage) {
-      updateStatus(validationMessage, "error");
+      setError(validationMessage);
       return;
     }
     if (
       payload.slug !== item.originalSlug &&
       surveys.some((survey) => survey.slug === payload.slug)
     ) {
-      updateStatus("slug 已存在，请更换", "error");
+      setError("slug 已存在，请更换");
       return;
     }
 
@@ -185,17 +210,17 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "保存失败");
       }
-      updateStatus("已保存问卷", "success");
+      showToast("已保存问卷");
       await reload();
     } catch (err: any) {
-      updateStatus(err.message ?? "保存失败，请稍后再试", "error");
+      setError(err.message ?? "保存失败，请稍后再试");
     } finally {
       setSavingSlug(null);
     }
   };
 
   const handleDeleteSurvey = async (slug: string, title: string) => {
-    updateStatus(null, "success");
+    resetStatus();
     const confirmed = window.confirm(`确定删除问卷 “${title || slug}” 吗？该操作不可撤销。`);
     if (!confirmed) return;
 
@@ -208,10 +233,10 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "删除失败");
       }
-      updateStatus("已删除问卷", "success");
+      showToast("已删除问卷");
       await reload();
     } catch (err: any) {
-      updateStatus(err.message ?? "删除失败，请稍后再试", "error");
+      setError(err.message ?? "删除失败，请稍后再试");
     } finally {
       setDeletingSlug(null);
     }
@@ -219,6 +244,27 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
 
   return (
     <div className="space-y-6">
+      {mounted && toastMessages.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[1000]">
+            {toastMessages.map((toast, index) => (
+              <div
+                key={toast.id}
+                className="bg-emerald-500/15 border border-emerald-400/70 text-emerald-200 uppercase tracking-[0.28em] text-xs px-4 py-2 shadow-[0_0_24px_rgba(16,185,129,0.35)] rounded-none"
+                style={{
+                  position: "absolute",
+                  bottom: `${index * 60}px`,
+                  right: 0,
+                  whiteSpace: "nowrap",
+                  maxWidth: "300px",
+                }}
+              >
+                {toast.text}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
       <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-foreground">新增问卷</h2>
@@ -279,7 +325,6 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
             </span>
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
           <AdminButton type="submit" disabled={creating} className="w-full md:w-auto">
             {creating ? "创建中..." : "创建问卷"}
           </AdminButton>
@@ -319,7 +364,7 @@ export default function SurveyManager({ surveys, loading, reload }: Props) {
                         type="button"
                         tone="plain"
                         onClick={() => handleSaveSurvey(index)}
-                        disabled={isProcessing}
+                        disabled={isProcessing || !isSurveyDirty(item)}
                       >
                         {savingSlug === item.originalSlug ? "保存中..." : "保存"}
                       </AdminButton>

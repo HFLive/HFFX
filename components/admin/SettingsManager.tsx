@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminButton } from "@/components/admin/AdminButton";
 
 const defaultTarget = "2025-12-30T18:00";
@@ -16,10 +17,10 @@ const tipItems = [
 type Props = {
   countdownTarget: string | null;
   countdownLoading: boolean;
-  reloadCountdown: () => Promise<void>;
+  reloadCountdown: (options?: { silent?: boolean }) => Promise<void>;
   paymentQrPath: string | null;
   paymentQrLoading: boolean;
-  reloadPaymentQr: () => Promise<void>;
+  reloadPaymentQr: (options?: { silent?: boolean }) => Promise<void>;
 };
 
 export default function SettingsManager({
@@ -33,13 +34,13 @@ export default function SettingsManager({
   const [value, setValue] = useState(countdownTarget ?? defaultTarget);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [toastMessages, setToastMessages] = useState<{ id: string; text: string }[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -54,10 +55,24 @@ export default function SettingsManager({
     };
   }, [previewUrl]);
 
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  const showToast = (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToastMessages((prev) => [...prev, { id, text: message }]);
+    setTimeout(() => {
+      setToastMessages((prev) => prev.filter((toast) => toast.id !== id));
+    }, 2800);
+  };
+
+  const countdownDirty = value !== (countdownTarget ?? defaultTarget);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
     setSaving(true);
     try {
       const response = await fetch("/api/admin/settings/countdown", {
@@ -69,8 +84,8 @@ export default function SettingsManager({
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "保存失败");
       }
-      setSuccess("已更新倒计时设置");
-      await reloadCountdown();
+      showToast("已更新倒计时设置");
+      await reloadCountdown({ silent: true });
     } catch (err: any) {
       setError(err.message ?? "保存失败，请稍后再试");
     } finally {
@@ -81,7 +96,6 @@ export default function SettingsManager({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setUploadError(null);
-    setUploadSuccess(null);
     if (!file) {
       setSelectedFile(null);
       setPreviewUrl(null);
@@ -112,7 +126,6 @@ export default function SettingsManager({
       return;
     }
     setUploadError(null);
-    setUploadSuccess(null);
     setUploading(true);
     try {
       const formData = new FormData();
@@ -125,13 +138,13 @@ export default function SettingsManager({
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "上传失败");
       }
-      setUploadSuccess("收款码已更新");
+      showToast("已更新收款码");
       setSelectedFile(null);
       setPreviewUrl(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      await reloadPaymentQr();
+      await reloadPaymentQr({ silent: true });
     } catch (err: any) {
       setUploadError(err.message ?? "上传失败，请稍后再试");
     } finally {
@@ -143,6 +156,27 @@ export default function SettingsManager({
 
   return (
     <div className="space-y-6">
+      {mounted && toastMessages.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[1000]">
+            {toastMessages.map((toast, index) => (
+              <div
+                key={toast.id}
+                className="bg-emerald-500/15 border border-emerald-400/70 text-emerald-200 uppercase tracking-[0.28em] text-xs px-4 py-2 shadow-[0_0_24px_rgba(16,185,129,0.35)] rounded-none"
+                style={{
+                  position: "absolute",
+                  bottom: `${index * 60}px`,
+                  right: 0,
+                  whiteSpace: "nowrap",
+                  maxWidth: "300px",
+                }}
+              >
+                {toast.text}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
       <section className="admin-panel space-y-5">
         <h2 className="text-2xl font-semibold text-foreground">首页倒计时设置</h2>
         <form onSubmit={handleSubmit} className="grid gap-3 max-w-md">
@@ -158,8 +192,11 @@ export default function SettingsManager({
             />
           </label>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
-          <AdminButton type="submit" disabled={saving || countdownLoading} className="w-full md:w-auto">
+          <AdminButton
+            type="submit"
+            disabled={saving || countdownLoading || !countdownDirty}
+            className="w-full md:w-auto"
+          >
             {saving ? "保存中..." : "保存设置"}
           </AdminButton>
         </form>
@@ -206,7 +243,6 @@ export default function SettingsManager({
               </span>
             </label>
             {uploadError && <p className="text-sm text-red-500">{uploadError}</p>}
-            {uploadSuccess && <p className="text-sm text-green-600">{uploadSuccess}</p>}
             <div className="flex flex-wrap gap-3">
               <AdminButton
                 type="button"
@@ -223,12 +259,11 @@ export default function SettingsManager({
                   setSelectedFile(null);
                   setPreviewUrl(null);
                   setUploadError(null);
-                  setUploadSuccess(null);
                   if (fileInputRef.current) {
                     fileInputRef.current.value = "";
                   }
                 }}
-                disabled={uploading}
+              disabled={uploading || (!selectedFile && !previewUrl)}
               >
                 清除选择
               </AdminButton>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminButton } from "@/components/admin/AdminButton";
 import type { AdminTimeline } from "@/components/admin/AdminDashboard";
 
@@ -33,34 +34,56 @@ function arrayMove<T>(list: T[], from: number, to: number): T[] {
 }
 
 export default function TimelineManager({ timeline, loading, reload }: Props) {
+  const [toastMessages, setToastMessages] = useState<{ id: string; text: string }[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [note, setNote] = useState(timeline.note ?? "");
   const [events, setEvents] = useState<EditableEvent[]>([]);
   const [newEvent, setNewEvent] = useState(initialNewEvent);
-  const [savingNote, setSavingNote] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
+  const [orderDirty, setOrderDirty] = useState(false);
+  const originalNoteRef = useRef<string>("");
+  const originalEventsRef = useRef<Record<string, EditableEvent>>({});
+  const originalOrderRef = useRef<string[]>([]);
 
   useEffect(() => {
+    const mapped = (timeline.events ?? []).map((event) => ({
+      id: event.id,
+      title: (event.title ?? "").trim(),
+      date: (event.date ?? "").trim(),
+      description: (event.description ?? "").trim(),
+      completed: Boolean(event.completed),
+    }));
     setNote(timeline.note ?? "");
-    setEvents(
-      (timeline.events ?? []).map((event) => ({
-        id: event.id,
-        title: event.title,
-        date: event.date ?? "",
-        description: event.description ?? "",
-        completed: Boolean(event.completed),
-      }))
-    );
+    setEvents(mapped);
+    originalNoteRef.current = (timeline.note ?? "").trim();
+    originalEventsRef.current = mapped.reduce<Record<string, EditableEvent>>((acc, item) => {
+      acc[item.id] = { ...item };
+      return acc;
+    }, {});
+    originalOrderRef.current = mapped.map((item) => item.id);
+    setOrderDirty(false);
   }, [timeline]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const count = useMemo(() => timeline.events?.length ?? 0, [timeline.events]);
 
   const resetStatus = () => {
     setError(null);
-    setSuccess(null);
+  };
+
+  const showSuccessMessage = (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToastMessages((prev) => [...prev, { id, text: message }]);
+    setTimeout(() => {
+      setToastMessages((prev) => prev.filter((item) => item.id !== id));
+    }, 2800);
   };
 
   const validateEvent = (payload: { title: string }) => {
@@ -68,28 +91,6 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
       return "请填写事件标题";
     }
     return null;
-  };
-
-  const handleSaveNote = async () => {
-    resetStatus();
-    setSavingNote(true);
-    try {
-      const response = await fetch("/api/admin/timeline", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ note: note.trim() }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message ?? "保存失败");
-      }
-      setSuccess("已更新备注");
-      await reload();
-    } catch (err: any) {
-      setError(err.message ?? "保存失败，请稍后再试");
-    } finally {
-      setSavingNote(false);
-    }
   };
 
   const handleCreateEvent = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -116,65 +117,13 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "新增失败");
       }
-      setSuccess("已新增时间线事件");
+      showSuccessMessage("已新增时间线事件");
       setNewEvent(initialNewEvent);
       await reload();
     } catch (err: any) {
       setError(err.message ?? "新增失败，请稍后再试");
     } finally {
       setCreating(false);
-    }
-  };
-
-  const handleSaveEvent = async (item: EditableEvent) => {
-    resetStatus();
-    const validation = validateEvent({ title: item.title });
-    if (validation) {
-      setError(validation);
-      return;
-    }
-    setSavingId(item.id);
-    try {
-      const response = await fetch(`/api/admin/timeline/${encodeURIComponent(item.id)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: item.title.trim(),
-          date: item.date.trim() || undefined,
-          description: item.description.trim() || undefined,
-          completed: item.completed,
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message ?? "保存失败");
-      }
-      setSuccess("已保存事件");
-      await reload();
-    } catch (err: any) {
-      setError(err.message ?? "保存失败，请稍后再试");
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const handleReorder = async (newOrder: EditableEvent[]) => {
-    resetStatus();
-    setEvents(newOrder);
-    try {
-      const response = await fetch("/api/admin/timeline", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order: newOrder.map((item) => item.id) }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.message ?? "保存顺序失败");
-      }
-      setSuccess("已更新时间线顺序");
-      await reload();
-    } catch (err: any) {
-      setError(err.message ?? "保存顺序失败，请稍后再试");
     }
   };
 
@@ -186,7 +135,8 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
       if (direction === "down" && index === prev.length - 1) return prev;
       const nextIndex = direction === "up" ? index - 1 : index + 1;
       const reordered = arrayMove(prev, index, nextIndex);
-      handleReorder(reordered);
+      const changed = reordered.map((item) => item.id).join("|") !== originalOrderRef.current.join("|");
+      setOrderDirty(changed);
       return reordered;
     });
   };
@@ -205,7 +155,7 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "删除失败");
       }
-      setSuccess("已删除事件");
+      showSuccessMessage("已删除事件");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "删除失败，请稍后再试");
@@ -214,8 +164,143 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
     }
   };
 
+  const noteDirty = note.trim() !== originalNoteRef.current;
+  const eventsDirty = (() => {
+    const originalMap = originalEventsRef.current;
+    if (events.length !== originalOrderRef.current.length) {
+      return true;
+    }
+    return events.some((event) => {
+      const original = originalMap[event.id];
+      if (!original) return true;
+      return (
+        event.title !== original.title ||
+        event.date !== original.date ||
+        event.description !== original.description ||
+        event.completed !== original.completed
+      );
+    });
+  })();
+  const isDirty = noteDirty || orderDirty || eventsDirty;
+
+  const handleSaveAll = async () => {
+    resetStatus();
+    const trimmedNote = note.trim();
+    const noteChanged = trimmedNote !== originalNoteRef.current;
+    const currentOrder = events.map((event) => event.id);
+    const orderChanged = orderDirty && currentOrder.join("|") !== originalOrderRef.current.join("|");
+
+    const originalMap = originalEventsRef.current;
+    const changedEvents = events.filter((event) => {
+      const original = originalMap[event.id];
+      if (!original) return false;
+      return (
+        event.title !== original.title ||
+        event.date !== original.date ||
+        event.description !== original.description ||
+        event.completed !== original.completed
+      );
+    });
+
+    if (!noteChanged && !orderChanged && changedEvents.length === 0) {
+      showSuccessMessage("没有需要保存的更改");
+      return;
+    }
+
+    setSavingAll(true);
+    try {
+      const tasks: Promise<unknown>[] = [];
+
+      if (noteChanged) {
+        tasks.push(
+          fetch("/api/admin/timeline", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ note: trimmedNote }),
+          }).then((response) => {
+            if (!response.ok) {
+              return response.json().catch(() => ({})).then((data) => {
+                throw new Error(data.message ?? "保存备注失败");
+              });
+            }
+            originalNoteRef.current = trimmedNote;
+          })
+        );
+      }
+
+      if (orderChanged) {
+        tasks.push(
+          fetch("/api/admin/timeline", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ order: currentOrder }),
+          }).then((response) => {
+            if (!response.ok) {
+              return response.json().catch(() => ({})).then((data) => {
+                throw new Error(data.message ?? "保存顺序失败");
+              });
+            }
+            originalOrderRef.current = currentOrder;
+            setOrderDirty(false);
+          })
+        );
+      }
+
+      changedEvents.forEach((event) => {
+        tasks.push(
+          fetch(`/api/admin/timeline/${encodeURIComponent(event.id)}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: event.title.trim(),
+              date: event.date.trim() || undefined,
+              description: event.description.trim() || undefined,
+              completed: event.completed,
+            }),
+          }).then((response) => {
+            if (!response.ok) {
+              return response.json().catch(() => ({})).then((data) => {
+                throw new Error(data.message ?? "保存事件失败");
+              });
+            }
+          })
+        );
+      });
+
+      await Promise.all(tasks);
+      showSuccessMessage("已保存时间线更新");
+      await reload();
+    } catch (err: any) {
+      setError(err.message ?? "保存失败，请稍后再试");
+    } finally {
+      setSavingAll(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      {mounted && toastMessages.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[1000]">
+            {toastMessages.map((toast, index) => (
+              <div
+                key={toast.id}
+                className="bg-emerald-500/15 border border-emerald-400/70 text-emerald-200 uppercase tracking-[0.28em] text-xs px-4 py-2 shadow-[0_0_24px_rgba(16,185,129,0.35)] rounded-none"
+                style={{
+                  position: "absolute",
+                  bottom: `${index * 60}px`,
+                  right: 0,
+                  whiteSpace: "nowrap",
+                  maxWidth: "300px",
+                }}
+              >
+                {toast.text}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
+      {error && <div className="admin-alert">{error}</div>}
       <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-foreground">时间线备注</h2>
@@ -229,13 +314,11 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
             rows={3}
             placeholder="例如：各时间会依据实际情况调整，网站将同步更新"
           />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
-          <div className="flex justify-end">
-            <AdminButton type="button" tone="plain" onClick={handleSaveNote} disabled={savingNote}>
-              {savingNote ? "保存中..." : "保存备注"}
-            </AdminButton>
-          </div>
+          {noteDirty && (
+            <p className="admin-text-small text-emerald-200/80 uppercase tracking-[0.3em]">
+              更改未保存
+            </p>
+          )}
         </div>
       </section>
 
@@ -301,7 +384,7 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
         ) : (
           <div className="grid gap-4">
             {events.map((event, index) => {
-              const isProcessing = savingId === event.id || deletingId === event.id;
+              const isProcessing = deletingId === event.id;
               return (
                 <div key={event.id} className="relative admin-panel space-y-4">
                   <div className="flex items-center gap-2 absolute right-4 top-4">
@@ -385,30 +468,30 @@ export default function TimelineManager({ timeline, loading, reload }: Props) {
                       />
                       标记为已完成
                     </label>
-                    <div className="flex items-center gap-2">
-                      <AdminButton
-                        type="button"
-                        tone="plain"
-                        onClick={() => handleSaveEvent(event)}
-                        disabled={isProcessing}
-                      >
-                        {savingId === event.id ? "保存中..." : "保存"}
-                      </AdminButton>
-                      <AdminButton
-                        type="button"
-                        tone="danger"
-                        onClick={() => handleDeleteEvent(event)}
-                        disabled={isProcessing}
-                      >
-                        {deletingId === event.id ? "删除中..." : "删除"}
-                      </AdminButton>
-                    </div>
+                    <AdminButton
+                      type="button"
+                      tone="danger"
+                      onClick={() => handleDeleteEvent(event)}
+                      disabled={isProcessing}
+                    >
+                      {deletingId === event.id ? "删除中..." : "删除"}
+                    </AdminButton>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+        <div className="flex justify-end">
+          <AdminButton
+            type="button"
+            tone="plain"
+            onClick={handleSaveAll}
+            disabled={!isDirty || savingAll}
+          >
+            {savingAll ? "保存中..." : "保存全部更改"}
+          </AdminButton>
+        </div>
       </section>
     </div>
   );

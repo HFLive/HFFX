@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminButton } from "@/components/admin/AdminButton";
 import type { AdminDanmaku } from "@/components/admin/AdminDashboard";
 
@@ -21,31 +22,61 @@ const defaultNewDanmaku = {
   color: "",
 };
 
+const QUICK_COLORS = [
+  { label: "黑色", value: "#000000" },
+  { label: "主题绿", value: "#29957F" },
+];
+
 export default function DanmakuManager({ danmaku, loading, reload }: Props) {
+  const [toastMessages, setToastMessages] = useState<{ id: string; text: string }[]>([]);
   const [newDanmaku, setNewDanmaku] = useState(defaultNewDanmaku);
   const [editableItems, setEditableItems] = useState<EditableDanmaku[]>([]);
   const [creating, setCreating] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const originalDanmakuRef = useRef<Record<string, EditableDanmaku>>({});
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setEditableItems(
-      danmaku.map((item) => ({
-        id: item.id,
-        text: item.text,
-        color: item.color ?? "",
-      }))
-    );
+    const mapped = danmaku.map((item) => ({
+      id: item.id,
+      text: item.text,
+      color: item.color ?? "",
+    }));
+    originalDanmakuRef.current = mapped.reduce<Record<string, EditableDanmaku>>((acc, entry) => {
+      acc[entry.id] = { ...entry };
+      return acc;
+    }, {});
+    setEditableItems(mapped);
   }, [danmaku]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const totalCount = useMemo(() => danmaku.length, [danmaku]);
 
   const resetStatus = () => {
     setError(null);
-    setSuccess(null);
   };
+
+  const showToast = (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToastMessages((prev) => [...prev, { id, text: message }]);
+    setTimeout(() => {
+      setToastMessages((prev) => prev.filter((item) => item.id !== id));
+    }, 2800);
+  };
+
+  const isItemDirty = (item: EditableDanmaku) => {
+    const original = originalDanmakuRef.current[item.id];
+    if (!original) return true;
+    return item.text !== original.text || item.color !== original.color;
+  };
+
+  const canCreate = newDanmaku.text.trim().length > 0;
 
   const validateText = (text: string) => {
     const trimmed = text.trim();
@@ -94,7 +125,7 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "新增失败");
       }
-      setSuccess("新增弹幕成功");
+      showToast("已新增弹幕");
       setNewDanmaku(defaultNewDanmaku);
       await reload();
     } catch (err: any) {
@@ -128,7 +159,7 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "保存失败");
       }
-      setSuccess("保存成功");
+      showToast("已保存弹幕");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "保存失败，请稍后再试");
@@ -151,7 +182,7 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "删除失败");
       }
-      setSuccess("已删除弹幕");
+      showToast("已删除弹幕");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "删除失败，请稍后再试");
@@ -162,6 +193,27 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
 
   return (
     <div className="space-y-6">
+      {mounted && toastMessages.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[1000]">
+            {toastMessages.map((toast, index) => (
+              <div
+                key={toast.id}
+                className="bg-emerald-500/15 border border-emerald-400/70 text-emerald-200 uppercase tracking-[0.28em] text-xs px-4 py-2 shadow-[0_0_24px_rgba(16,185,129,0.35)] rounded-none"
+                style={{
+                  position: "absolute",
+                  bottom: `${index * 60}px`,
+                  right: 0,
+                  whiteSpace: "nowrap",
+                  maxWidth: "300px",
+                }}
+              >
+                {toast.text}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
       <section className="admin-panel space-y-5">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <h2 className="text-2xl font-semibold text-foreground">新增弹幕</h2>
@@ -184,10 +236,21 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
               className="rounded-xl border border-primary/20 px-3 py-2 text-sm"
               placeholder="#FF5722 或 rgba(255,87,34,0.85)"
             />
+            <div className="flex flex-wrap gap-2">
+              {QUICK_COLORS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setNewDanmaku((prev) => ({ ...prev, color: option.value }))}
+                  className="px-3 py-1 text-xs uppercase tracking-[0.3em] border border-emerald-500/60 bg-black/60 text-emerald-200 hover:bg-emerald-500/20"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
           {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
-          <AdminButton type="submit" disabled={creating} className="w-full md:w-auto">
+          <AdminButton type="submit" disabled={creating || !canCreate} className="w-full md:w-auto">
             {creating ? "添加中..." : "添加弹幕"}
           </AdminButton>
         </form>
@@ -243,12 +306,32 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
                         />
                       </div>
                     </div>
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex flex-col gap-2 md:items-end">
+                      <div className="flex gap-2">
+                        {QUICK_COLORS.map((option) => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() =>
+                              setEditableItems((prev) =>
+                                prev.map((row) =>
+                                  row.id === item.id ? { ...row, color: option.value } : row
+                                )
+                              )
+                            }
+                            className="px-3 py-1 text-xs uppercase tracking-[0.3em] border border-emerald-500/60 bg-black/60 text-emerald-200 hover:bg-emerald-500/20"
+                            disabled={isProcessing}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-end gap-2">
                       <AdminButton
                         type="button"
                         tone="plain"
                         onClick={() => handleSave(item)}
-                        disabled={isProcessing}
+                        disabled={isProcessing || !isItemDirty(item)}
                       >
                         {savingId === item.id ? "保存中..." : "保存"}
                       </AdminButton>
@@ -260,6 +343,7 @@ export default function DanmakuManager({ danmaku, loading, reload }: Props) {
                       >
                         {deletingId === item.id ? "删除中..." : "删除"}
                       </AdminButton>
+                      </div>
                     </div>
                   </div>
                 </div>

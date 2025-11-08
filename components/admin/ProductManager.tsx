@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AdminProduct } from "./AdminDashboard";
 import { AdminButton } from "@/components/admin/AdminButton";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ type Props = {
 };
 
 export default function ProductManager({ products, loading, reload }: Props) {
+  const [toastMessages, setToastMessages] = useState<{ id: string; text: string }[]>([]);
   const [newProduct, setNewProduct] = useState(initialNewProduct);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
@@ -28,6 +30,19 @@ export default function ProductManager({ products, loading, reload }: Props) {
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const [activatingId, setActivatingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  const showToast = (message: string) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToastMessages((prev) => [...prev, { id, text: message }]);
+    setTimeout(() => {
+      setToastMessages((prev) => prev.filter((item) => item.id !== id));
+    }, 2800);
+  };
+
+  const resetStatus = () => {
+    setError(null);
+  };
 
   const activeProducts = useMemo(() => products.filter((p) => p.isActive), [products]);
   const inactiveProducts = useMemo(() => products.filter((p) => !p.isActive), [products]);
@@ -39,6 +54,11 @@ export default function ProductManager({ products, loading, reload }: Props) {
       }
     };
   }, [coverImagePreview]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const handleAddVariantField = () => {
     setNewProduct((prev) => ({
@@ -116,8 +136,16 @@ export default function ProductManager({ products, loading, reload }: Props) {
     }
   };
 
+  const canCreate = useMemo(
+    () =>
+      newProduct.name.trim().length > 0 &&
+      newProduct.variants.every((variant) => variant.name.trim().length > 0),
+    [newProduct]
+  );
+
   const handleCreateProduct = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    resetStatus();
     if (!newProduct.name.trim()) {
       setError("请填写商品名称");
       return;
@@ -127,7 +155,6 @@ export default function ProductManager({ products, loading, reload }: Props) {
       return;
     }
     setCreating(true);
-    setError(null);
     try {
       const payloadVariants = newProduct.variants.map((variant) => ({
         name: variant.name.trim(),
@@ -155,6 +182,7 @@ export default function ProductManager({ products, loading, reload }: Props) {
       }
       setNewProduct(initialNewProduct);
       resetCoverImage();
+      showToast("已创建商品");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "创建失败，请稍后再试");
@@ -164,6 +192,7 @@ export default function ProductManager({ products, loading, reload }: Props) {
   };
 
   const handleInventoryUpdate = async (variantId: string, inventory: number) => {
+    resetStatus();
     try {
       const response = await fetch(`/api/admin/variants/${variantId}`, {
         method: "PATCH",
@@ -174,6 +203,7 @@ export default function ProductManager({ products, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "更新库存失败");
       }
+      showToast("库存已更新");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "更新库存失败");
@@ -183,8 +213,8 @@ export default function ProductManager({ products, loading, reload }: Props) {
   const handleDeactivateProduct = async (productId: string, productName: string) => {
     const confirmed = window.confirm(`确定要下架 “${productName}” 吗？下架后前台将不再展示该商品。`);
     if (!confirmed) return;
+    resetStatus();
     setDeactivatingId(productId);
-    setError(null);
     try {
       const response = await fetch(`/api/admin/products/${productId}`, {
         method: "PATCH",
@@ -195,6 +225,7 @@ export default function ProductManager({ products, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "下架失败");
       }
+      showToast("已下架商品");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "下架失败，请稍后再试");
@@ -204,8 +235,8 @@ export default function ProductManager({ products, loading, reload }: Props) {
   };
 
   const handleActivateProduct = async (productId: string, productName: string) => {
+    resetStatus();
     setActivatingId(productId);
-    setError(null);
     try {
       const response = await fetch(`/api/admin/products/${productId}`, {
         method: "PATCH",
@@ -216,6 +247,7 @@ export default function ProductManager({ products, loading, reload }: Props) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message ?? "上架失败");
       }
+      showToast("已上架商品");
       await reload();
     } catch (err: any) {
       setError(err.message ?? "上架失败，请稍后再试");
@@ -226,6 +258,27 @@ export default function ProductManager({ products, loading, reload }: Props) {
 
   return (
     <div className="space-y-8">
+      {mounted && toastMessages.length > 0 &&
+        createPortal(
+          <div className="pointer-events-none fixed bottom-6 right-6 z-[1000]">
+            {toastMessages.map((toast, index) => (
+              <div
+                key={toast.id}
+                className="bg-emerald-500/15 border border-emerald-400/70 text-emerald-200 uppercase tracking-[0.28em] text-xs px-4 py-2 shadow-[0_0_24px_rgba(16,185,129,0.35)] rounded-none"
+                style={{
+                  position: "absolute",
+                  bottom: `${index * 60}px`,
+                  right: 0,
+                  whiteSpace: "nowrap",
+                  maxWidth: "300px",
+                }}
+              >
+                {toast.text}
+              </div>
+            ))}
+          </div>,
+          document.body
+        )}
       <section className="admin-panel space-y-5">
         <header className="space-y-2">
           <p className="admin-heading">product registry</p>
@@ -299,6 +352,19 @@ export default function ProductManager({ products, loading, reload }: Props) {
             <div className="space-y-3">
               {newProduct.variants.map((variant, index) => (
                 <div key={index} className="admin-subpanel space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="admin-label">款式 #{index + 1}</span>
+                    {newProduct.variants.length > 1 && (
+                      <AdminButton
+                        tone="danger"
+                        type="button"
+                        onClick={() => handleRemoveVariantField(index)}
+                        className="text-[10px] md:text-xs px-3 py-1.5 tracking-[0.25em]"
+                      >
+                        移除
+                      </AdminButton>
+                    )}
+                  </div>
                   <div className="grid gap-2">
                     <span className="admin-label">款式名称</span>
                     <input
@@ -334,7 +400,7 @@ export default function ProductManager({ products, loading, reload }: Props) {
             </div>
           </div>
           {error && <div className="admin-alert">{error}</div>}
-          <AdminButton type="submit" disabled={creating} className="w-full md:w-auto">
+          <AdminButton type="submit" disabled={creating || !canCreate} className="w-full md:w-auto">
             {creating ? "创建中..." : "创建商品"}
           </AdminButton>
         </form>
