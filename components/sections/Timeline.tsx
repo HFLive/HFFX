@@ -16,6 +16,7 @@ export default function Timeline({ timeline }: Props) {
   const titleRefs = useRef<(HTMLHeadingElement | null)[]>([]);
   const [circleOffsets, setCircleOffsets] = useState<number[]>([]);
   const [lineHeights, setLineHeights] = useState<number[]>([]);
+  const [isCalculated, setIsCalculated] = useState(false);
 
   useEffect(() => {
     const calculatePositions = () => {
@@ -57,18 +58,18 @@ export default function Timeline({ timeline }: Props) {
         return nextCircleTop - currentCircleBottom;
       });
       setLineHeights(heights);
+      setIsCalculated(true);
     };
 
-    // 多次延迟计算，确保 DOM 完全渲染和动画完成
+    // 立即计算一次，然后延迟计算确保准确
+    calculatePositions();
     const timer1 = setTimeout(calculatePositions, 50);
     const timer2 = setTimeout(calculatePositions, 200);
-    const timer3 = setTimeout(calculatePositions, 600);
     window.addEventListener("resize", calculatePositions);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
-      clearTimeout(timer3);
       window.removeEventListener("resize", calculatePositions);
     };
   }, [timeline.events]);
@@ -116,7 +117,7 @@ export default function Timeline({ timeline }: Props) {
                     ref={(el) => {
                       circleRefs.current[index] = el;
                     }}
-                    className="relative z-10 flex-shrink-0"
+                    className="relative z-10 flex-shrink-0 transition-transform duration-300 ease-out"
                     style={{ transform: `translateY(${circleOffsets[index] ?? 0}px)` }}
                   >
                     <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center">

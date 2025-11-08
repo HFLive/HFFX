@@ -3,6 +3,7 @@ export const revalidate = 0;
 
 import Hero from "@/components/sections/Hero";
 import Countdown from "@/components/sections/Countdown";
+import InteractiveGlow from "@/components/effects/InteractiveGlow";
 
 export default function Home() {
   return (
@@ -10,6 +11,7 @@ export default function Home() {
       <section className="relative overflow-hidden bg-gradient-to-b from-background via-background/80 to-primary/5">
         {/* 统一的背景装饰层 */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <InteractiveGlow />
           {/* 顶部主要光晕 */}
           <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[80%] h-[50vh] bg-primary/12 rounded-full blur-3xl opacity-60" />
           {/* 左侧装饰光晕 */}
