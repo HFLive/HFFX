@@ -42,9 +42,10 @@ export function DanmakuProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const removalTimeouts = removalTimeoutsRef.current;
     return () => {
-      removalTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
-      removalTimeoutsRef.current.clear();
+      removalTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      removalTimeouts.clear();
     };
   }, []);
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Image from "next/image";
 import { AdminButton } from "@/components/admin/AdminButton";
 
 const defaultTarget = "2025-12-30T18:00";
@@ -216,10 +217,12 @@ export default function SettingsManager({
                   加载中...
                 </div>
               ) : (
-                <img
+                <Image
                   src={effectiveQrPath}
                   alt="当前收款二维码"
-                  className="h-full w-full object-contain"
+                  fill
+                  className="object-contain"
+                  unoptimized
                 />
               )}
             </div>
